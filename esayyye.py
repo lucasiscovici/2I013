@@ -4,8 +4,8 @@ from soccersimulator import  SoccerTeam as STe,SoccerMatch as SM, Player, Soccer
 settings=soccersimulator.settings
 
 
-psg= STe("psg",[Player("Ibra",As.all(0))])
-marseille= STe("marseille",[Player("L1a1ss",AllS.all(2))])
+psg= STe("psg",[Player("Ibra",AllS.all(3)),Player("d",AllS.all(2))])
+marseille= STe("marseille",[Player("L1a1ss",AllS.all(2)),Player("Ibra",AllS.all(1))])
 match=SM(psg,marseille) 
 soccersimulator.show(match)
 #tournoi=ST(1)
