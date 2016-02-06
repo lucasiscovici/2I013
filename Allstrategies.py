@@ -1,6 +1,6 @@
 import soccersimulator, soccersimulator.settings,math
 from soccersimulator.settings import *
-from soccersimulator import SoccerTeam as STe,SoccerMatch as SM, Player, SoccerTournament as ST, BaseStrategy as AS, SoccerAction as SA, Vector2D as V2D,SoccerState as SS
+from soccersimulator import SoccerTeam as STe,SoccerMatch as SM, Player, SoccerTournament as ST, BaseStrategy as AS, SoccerAction as SA, Vector2D as V2D,SoccerState as SS, MobileMixin
 
 
 settings=soccersimulator.settings
@@ -15,10 +15,15 @@ GOAL2=V2D(T1_BUT,GAME_HEIGHT/2)
 ZONE_GOAL=0
 ANGLE1=0
 ANGLE2=math.pi
-GOAL_ATTACK=20
+GOAL_ATTACK=15
 GOAL_ALERT=50
 INCER=10
-
+BALLE_MIN_VITESSE=0.5
+BALLE_MAX_NORM=1
+NORM_DVT=0.5
+MODULO_GOAL=2
+GOAL_ATTACK2=20
+GAMMA=1.5
 class clever(object):
 	def __init__(self):
 	        self.auto1_attack = 1
@@ -37,7 +42,32 @@ class clever(object):
 		self.one_to_one_goal_auto1=1
 		self.one_to_one_goal_max=0
 		self.one_to_one_goal_attack=0   
+class Ball(MobileMixin):
+    def __init__(self,*args,**kwargs):
+        MobileMixin.__init__(self,*args,**kwargs)
 
+    def next(self,sum_of_shoots):
+        self.vitesse.norm = self.vitesse.norm - settings.ballBrakeSquare * self.vitesse.norm ** 2 - settings.ballBrakeConstant * self.vitesse.norm
+        ## decomposition selon le vecteur unitaire de ball.speed
+        snorm = sum_of_shoots.norm
+        if snorm > 0:
+            u_s = sum_of_shoots.copy()
+            u_s.normalize()
+            u_t = Vector2D(-u_s.y, u_s.x)
+            speed_abs = abs(self.vitesse.dot(u_s))
+            speed_ortho = self.vitesse.dot(u_t)
+            speed = Vector2D(speed_abs * u_s.x - speed_ortho * u_s.y, speed_abs * u_s.y + speed_ortho * u_s.x)
+            speed += sum_of_shoots
+            self.vitesse = speed
+        self.vitesse = self.vitesse.norm_max(settings.maxBallAcceleration)
+        self.position += self.vitesse
+    @property
+    def position(self):
+        return self.position
+    @property
+    def vitesse(self):
+        return self.vitesse
+        
 class usefull(object): 
 	def __init__(self): 
 		self.name="czc" 
@@ -63,6 +93,21 @@ class usefull(object):
 		    angle_factor + dist_factor) / 2. * settings.shootRandomAngle * math.pi / 2.
 		self._action = SoccerAction()
 		return shoot
+        def babal(self,ball):
+                br=Ball(ball)
+                br.next(V2D())
+                return br
+        def test_after(self,ball,v2):
+		ball2=ball
+		
+                d=ball2.vitesse
+		print("d",d.x,"x",ball2.position)
+                while d.x >0.1:
+                        d.norm =d.norm - settings.ballBrakeSquare * d.norm ** 2 - settings.ballBrakeConstant * d.norm
+                        d =d.norm_max(settings.maxBallAcceleration)
+        		ball2.position += d
+                        print("ueruyzzutuztutztzuuttuzr",d,"d",ball2,"v2",v2)
+                return ball2.position.x >= v2
 	def has_ball(self,state,position): 
 		return state.ball.position.distance(position) <=PLAYER_RADIUS + BALL_RADIUS
 		
@@ -91,7 +136,7 @@ class all(AS):
 		
 	def compute_strategy(self,state,id_team,id_player):
 		nb_pers=usefull().nb_p(state)
-		if nb_pers==2:
+		if nb_pers>=2:
 			if self.num==0:
 				return ia().compute_strategy(state,id_team,id_player)
 			else:
@@ -136,9 +181,9 @@ class goal_one_to_one(AS):
         return SA(self.goal - self.config.position,V2D())
     def check_goal(self,marge=0):
 	if self.id_team==1:
-		return self.config.position.y >=44 and  self.config.position.y<=46 and self.config.position.x<= ZONE_GOAL + marge
+		return self.config.position.y >=self.goal.y-MODULO_GOAL and  self.config.position.y<=self.goal.y+MODULO_GOAL and self.config.position.x<= ZONE_GOAL + marge
 	else:
-		return self.config.position.y >=44 and  self.config.position.y<=46 and self.config.position.x>= GAME_WIDTH-ZONE_GOAL - marge
+		return self.config.position.y >=self.goal.y-MODULO_GOAL and  self.config.position.y<=self.goal.y+MODULO_GOAL and self.config.position.x>= GAME_WIDTH-ZONE_GOAL - marge
     def check_goal_dvt(self):
 	angle=self.config.position.angle
 	if self.check_goal(0):
@@ -148,15 +193,20 @@ class goal_one_to_one(AS):
 			return angle != ANGLE2 
     def dvt(self):
 	if self.id_team==1:
-		return SA(V2D(angle=ANGLE1,norm=0.5),V2D(4,4))
+		return SA(V2D(angle=ANGLE1,norm=NORM_DVT),V2D(4,4))
 	else:
-		return SA(V2D(angle=ANGLE2,norm=0.5),V2D(4,4))
+		return SA(V2D(angle=ANGLE2,norm=NORM_DVT),V2D(4,4))
     def attack(self):
-        return SA((self.ball-self.config.position).norm_max(0.1),V2D())
+        yy=self.projector2(self.state.ball)
+        if self.config.position.y >=yy+1 or self.config.position.y <=yy-1:
+                return SA(V2D(0,yy -self.config.position.y),V2D())
+        return SA(self.ball-self.config.position,V2D())
         
     def check_attack(self):
 	print("vitesse",self.state.ball.vitesse,"ball x",self.ball.x)
-	return (self.ball.x >= GAME_WIDTH-GOAL_ATTACK) or (abs(self.state.ball.vitesse.x) <= 0.5 and abs(self.state.ball.vitesse.y) <= 0.5 and self.ball.x >= GAME_WIDTH-GOAL_ATTACK -20) and  self.state.ball.vitesse.norm <=1
+	print("ca")
+                
+	return (abs(self.state.ball.vitesse.x) <= BALLE_MIN_VITESSE and abs(self.state.ball.vitesse.y) <= BALLE_MIN_VITESSE and self.ball.x >= GAME_WIDTH-GOAL_ATTACK2 and self.ball.y >= self.goal.y - 2 -GOAL_ATTACK and self.ball.y <= self.goal.y + 2 + GOAL_ATTACK and self.state.ball.vitesse.norm <=BALLE_MAX_NORM )or( self.ball.x >= GAME_WIDTH-GOAL_ATTACK  and self.ball.y >= self.goal.y - 2 -GOAL_ATTACK and self.ball.y <= self.goal.y + 2 + GOAL_ATTACK)
     def projector(self,ball):	
 	print("ball x",ball.position.x," posirion x",self.config.position.x)
 	while (ball.position.x <= self.config.position.x) and ball.vitesse != V2D(0,0):
@@ -169,16 +219,20 @@ class goal_one_to_one(AS):
 		print("bp ", ball.vitesse )
 	return ball.position.y
     def projector2(self,ball):
-	lamda=(self.config.position.x-ball.position.x)/ball.vitesse.x
-	return ball.vitesse.y*lamda + ball.position.y
+        if ball.vitesse.x != 0:
+                lamda=(self.config.position.x-ball.position.x)/ball.vitesse.x
+                return ball.vitesse.y*lamda + ball.position.y
+        else:
+                return ball.position.y
     def check_ball(self):
 	return usefull().has_ball_dvt(self.state,self.config.position,self.autre_player.position,self.id_team)
     def alert(self):
 	#fd=self.state.ball
 	yy=self.projector2(self.state.ball)
-
-	return SA(V2D(0,yy-self.config.position.y),V2D(0,0))
-	
+	if yy>=35 and yy<=55:
+		return SA(V2D(0,yy-self.config.position.y),V2D(0,0))
+	else:
+		return SA()
     def check_shoot(self):
         #print("lko")
         return usefull().has_ball(self.state,self.config.position)
@@ -193,15 +247,21 @@ class goal_one_to_one(AS):
         #print("prince")
         print(self.autre_player.position.angle,self.autre_player.position.angle-math.pi/2)
         
-        return SA(V2D(),V2D(self.autre_player.position.x,GAME_HEIGHT-10-self.autre_player.position.y)-self.config.position)
+        return SA(V2D(),V2D(self.autre_player.position.x + self.sens*GAMMA,(GAME_HEIGHT-10-self.autre_player.position.y)/GAMMA)-self.config.position)
+    def check_stop_alert(self):
+            ty=self.projector2(self.state.ball)
+            print("ty, ",ty)
+            return (ty <= self.goal.y-7 or self.goal.y + 7 <=ty )and not self.check_goal(15)
+    def stop_alert(self):
+            self.clever.one_to_one_goal_auto1=1
+            return self.revien_goal()
     def check_alert(self):
-	return self.ball.x >= GAME_WIDTH-GOAL_ALERT and  not self.check_ball()
+	return self.ball.x >= GAME_WIDTH-GOAL_ALERT and not self.check_ball() and self.state.ball.vitesse.x >=0
     def check_angle(self):
 	return self.config.position.y -self.autre_player.position.y >= 10
-
     def compute_strategy(self):
-	if usefull().has_ball(self.state,self.autre_player.position) and self.clever.one_to_one_goal_max:
-		self.clever.one_to_one_goal_max=0
+	# if usefull().has_ball(self.state,self.autre_player.position) and self.clever.one_to_one_goal_max:
+	#	self.clever.one_to_one_goal_max=0
 	#if self.clever.one_to_one_goal_attack and self.check_angle() and self.check_ball() or self.clever.one_to_one_goal_max :
 	#	print("ANGLE")
 	#	self.clever.one_to_one_goal_max=1
@@ -216,12 +276,15 @@ class goal_one_to_one(AS):
 	if self.check_shoot():
 		print("shoot")
 		self.clever.one_to_one_goal_auto1=1
-		self.clever.one_to_one_goal_attack=1
-		return self.shoot()	
+		self.clever.one_to_one_goal_attack=0
+		return self.shoot()
 	if self.check_attack():
-		print("attack")
+		print("attackg")
 		return self.attack()
-	if self.check_alert() and usefull().has_ball(self.state,self.autre_player.position):
+        if self.check_stop_alert():
+                print("stop alert")
+                return self.stop_alert()
+        if self.check_alert():
 		print("alert")
 		return self.alert()
 	return SA()
@@ -260,3 +323,4 @@ class forceur_one_to_one(AS):
             return SA(V2D(0,0),goal_to_ball)
         else:
             return SA(state.ball.position - state.player(id_team,id_player).position,V2D(0,0))
+
