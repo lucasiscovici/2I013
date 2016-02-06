@@ -5,6 +5,6 @@ settings=soccersimulator.settings
 
 
 
-team1= STe("marseille",[Player("L1a1ss",AllS.all(2))])
-team2= STe("marseille",[Player("L1a1ss",AllS.all(2)),Player("Ibra",As.all(0))])
-team4=STe("marseille",[Player("L1a1ss",AllS.all(2)),Player("Ibra",As.all(0))],Player("Ibra",As.all(0))],[Player("L1a1ss",AllS.all(2)))
+team1= STe("psg",[Player("L1a1ss",AllS.all(2))])
+team2= STe("psg",[Player("L1a1ss",AllS.all(2)),Player("Ibra",AllS.all(3))])
+team4=STe("psg",[Player("L1a1ss",AllS.all(2)),Player("Ibra",AllS.all(1))],Player("Ibra",AllS.all(3))],[Player("L1a1ss",AllS.all(2)))
