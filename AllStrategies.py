@@ -379,7 +379,7 @@ class goal_two_to_two(AS):
             return SA(V2D(angle=ANGLE2,norm=NORM_DVT),V2D(4,4))
     def attack(self):
         yy=self.projector2(self.state.ball)
-        if (self.config.position.y >=yy+1 or self.config.position.y <=yy-1) and self.state.ball.vitesse.norm>0.5:
+        if (self.config.position.y >=yy+1 or self.config.position.y <=yy-1) and self.state.ball.vitesse.norm>0.2:
             return SA(V2D(0,yy -self.config.position.y),V2D())
         return SA(self.ball-self.config.position,V2D())
 
@@ -517,9 +517,9 @@ class attack_two_to_two(AS):
     def compute_strategy(self):
         print("oco",self.id_team,self.id_player)
         if (self.state.ball.position.distance(self.config.position) <= (PLAYER_RADIUS + BALL_RADIUS) ) :
-            if abs(self.goal.x- (self.config.position.x)) <=40:
+            if abs(self.goal2.x- (self.config.position.x)) <=40:
                 print("abs")
-                return SA(V2D(0,0),(self.goal-self.state.ball.position).norm_max(5))
+                return SA(V2D(0,0),(self.goal2-self.state.ball.position).norm_max(5))
             else:
                 print("abs")
                 yp=usefull().near_of_me(self.config,self.autre,self.state)
@@ -529,7 +529,7 @@ class attack_two_to_two(AS):
                     print(self.goal)
                     return SA(V2D(0,0),(self.goal2-self.state.ball.position).norm_max(2))
                 else:
-                    return SA(V2D(0,0),(self.goal2-self.state.ball.position).norm_max(0.5))
+                    return SA(V2D(0,0),(self.goal2-self.state.ball.position).norm_max(0.9))
 
         else:
             print("IIIo")
