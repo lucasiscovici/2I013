@@ -592,7 +592,7 @@ class attack_one_to_one(AS):
 				if jj:
 					if abs(self.goal2.x- (self.config.position.x)) <=40:
 						y=self.goal2 + V2D(0,5)-self.state.ball.position
-
+						return SA(V2D(0,0),y)
 					else:
 						yy=GAME_HEIGHT-self.autre_player.position.y 
 
