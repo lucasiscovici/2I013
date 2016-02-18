@@ -238,7 +238,7 @@ class StateBall:
         self.id_player=id_player
         self.ball=self.state.ball
         self.ball_position=self.ball.position
-        self.ball_vitesse=self.ball.position
+        self.ball_vitesse=self.ball.vitesse
 
     def __getattr__(self,name):
         return getattr(self.state,name)
@@ -375,14 +375,20 @@ class Bibli_Player:
                 return me.x >him.x
             else:
                 return me.x <him.x
+
         def has_ball_next(self):
             f=self.next_position_ball_state()
             return self.has_ball(f,self.ma_position)
-        
+        def trou(self):
+            yp=self.next_position_ball_state()
+            yo=self.next_position_ball(yp)
+            return self.has_ball(yo,self.ma_position) or self.has_ball(yp,self.ma_position)
         def has_ball_dvt(self):
             him=self.near_of_me()
             return self.have_ball() and not self.dvt_lui(him.position)
 
+        def check_shoot(self):
+            return self.have_ball() or self.has_ball(self.next_position_ball_state(),self.ma_position)
 
         def has_ball_dvt2(self):
             him=self.near_of_me()
@@ -394,6 +400,7 @@ class Bibli_Player:
                 if self.has_ball(self.ball,self.state.player(self._autre,i).position):
                     return 1
             return 0
+
         def near_of_me(self):
             config1,id_team,state = self.moi,self._autre,self.bibli
             if self.nb_p()==2:
@@ -481,6 +488,7 @@ class all2(AS):
     
     def __getattr__(self,name):
         return getattr(self.state,name)
+
 class illumination_one_to_one(AS):
     def __init__(self,id=0):
         AS.__init__(self,"illumination")
@@ -532,11 +540,13 @@ class Bibli_Goal:
     #A REVOIR
     def attack(self):
         #        printn("attack-simulate")
+        printn("ball",self.ball,"norm",self.ball_vitesse.norm)
+
         yi=usefull().simulate(self.moi,self.state)
-        regles2=self.ball_position.distance(self.ma_position) < 20
-        regles3=self.ball_position.distance(self.ma_position) < 15
-        regles4=self.ball_position.distance(self.ma_position) < 10
-        regles5=self.ball_position.distance(self.ma_position) < 3
+        yy=self.next_position_ball(yi)
+        printn("yi",yi)
+        if self.ball_vitesse.norm < 1 and (self.ma_position.distance(self.ball_position)<2 or self.ma_position.distance(yi.position)<2 or self.ma_position.distance(yy.position)<2):
+            yi=self.ball
 #        if regles5:
 #            printn("r5")
 #            return SA((yi.position-self.config.position).norm_max(1),V2D())
@@ -556,7 +566,7 @@ class Bibli_Goal:
 #
 #            return SA((yi.position-self.config.position).norm_max(0.3),V2D())
 
-        return SA((yi.position-self.config.position).norm_max(self.ball_vitesse.norm),V2D())
+        return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
     
     
     def shoot(self):
@@ -586,7 +596,6 @@ class Bibli_Goal:
         return self.ball.position.distance(self.ma_position) < self.ball.position.distance(self.autre.position) or self.ball.position.distance(self.ma_position) < 20
     
     def check_goal(self):
-        
         return ( self.check_goal_m(0))
     
     def check_goal_m(self,m=0):
@@ -596,8 +605,6 @@ class Bibli_Goal:
                                      
     def check_ball(self):
         return self.has_ball_dvt()
-    def trou(self):
-        return self.has_ball_next()
     def projector_ball_goal(self):
         ball=self.ball
         return self.projector_ball_x(ball,self.ma_position.x)
@@ -624,9 +631,7 @@ class Bibli_Goal:
         else:
             return SA()
 
-    def check_shoot(self):
-        return self.have_ball() or self.has_ball(self.next_position_ball_state(),self.ma_position)
-                                     
+
     def dvt(self):
         if self.id_team==1:
             return SA(V2D(angle=ANGLE1,norm=NORM_DVT),V2D(4,4))
@@ -881,7 +886,8 @@ class attack_one_to_one(AS):
         else:
             printn("hh")
             yi=usefull().simulate(self.moi,self.state)
-            return SA((yi.position-self.config.position).norm_max(self.ball_vitesse.norm),V2D(0,0))
+            
+            return SA(yi.position-self.config.position,V2D(0,0))
 
     def _rd_angle(self,shoot,dangle,dist):
         eliss = lambda x, alpha: (math.exp(alpha*x)-1)/(math.exp(alpha)-1)
@@ -895,6 +901,9 @@ class attack_one_to_one(AS):
                         angle=shoot.angle+2*(random.random()-0.5)*angle_prc)
     
     def compute_strategy(self):
+        if self.trou() and not self.check_shoot():
+            printn("trou")
+            return SA(V2D(),V2D())
         if self.clever.two_to_two_goal_attack==1 and self.autre_ball():
             self.clever.two_to_two_goal_attack=0
             return self.to_change(TO_GOAL)
