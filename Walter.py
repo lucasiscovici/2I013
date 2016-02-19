@@ -159,7 +159,8 @@ class clever(object):
             y = self.tech[:]
             for key, value in self.history_me.iteritems():
                 if value != bibli.id_team:
-                    y.remove(key)
+                    if key in y:
+                        y.remove(key)
             if len(y) > 0:
                 self.auto_master(y[0],bibli)
             else:
