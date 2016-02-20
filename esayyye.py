@@ -5,7 +5,7 @@ settings=soccersimulator.settings
 
 
 psg= STe("psg",[Player("Thiago Silva",W.all(2))])
-marseille= STe("marseille",[Player("Ocampos",W.alls(3))])
+marseille= STe("marseille",[Player("Ocampos",W.all2(3))])
 match=SM(psg,marseille)
 soccersimulator.show(match)
 #tournoi=ST(1)
