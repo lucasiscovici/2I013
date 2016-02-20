@@ -26,7 +26,7 @@ NORM_DVT=0.5
 MODULO_GOAL=2
 GOAL_ATTACK2=20
 GAMMA=1.5
-PRINT=0
+PRINT=1
 TO_GOAL=2
 TO_ATTACK=3
 TO_FORCEUR=1
@@ -479,7 +479,7 @@ class all2(AS):
                 return ia().compute_strategy(self.state,self.id_team,self.id_player)
             else:
                 return illumination_one_to_one(self.clever.master).compute_strategy(self.state)
-        elif nb_pers==4:
+        elif nb_pers>=4:
             return illumination_two_to_two(self.clever.master).compute_strategy(self.state)
 
 
@@ -578,18 +578,33 @@ class Bibli_Goal:
         return SA(V2D(),y)
     
     def check_stop_alert(self):
+        yh=self.ball_in_zone(GOAL_ALERT)
+        if self.id_team==1:
+            g= self.ball_vitesse.x > 0
+        else:
+            g= self.ball_vitesse.x < 0
         ty=self.projector_ball_goal()
-        return (ty <= self.goal.y-7 or self.goal.y + 7 <=ty )and not self.check_goal_m(15)
+        return (not self.check_goal_m(15) or (yh and g)) and self.clever.alert==1
 
     def stop_alert(self):
         self.clever.one_to_one_goal_auto1=1
+        self.alert=0
         return self.revien_goal
     def bb(self):
         f=not self.check_goal_m(20) and self.config.vitesse.norm < 0.2 and (self.state.ball.position.distance(self.ma_position) > self.state.ball.position.distance(self.autre_position))
         if f:
             self.clever.one_to_one_goal_auto1=1
         return f
-    
+    def d_but(self):
+        min=self.ball_position.distance(self.mes_goal +V2D(0,GAME_GOAL_HEIGHT/2))
+        d=self.mes_goal +V2D(0,GAME_GOAL_HEIGHT/2)
+        for i in range(-GAME_GOAL_HEIGHT/2,GAME_GOAL_HEIGHT/2):
+            k=self.ball_position.distance(self.mes_goal +V2D(0,i))
+            if k <min:
+                min=k
+                d=self.mes_goal +V2D(0,i)
+        return d
+
     def check_alert(self):
         yh=self.ball_in_zone(GOAL_ALERT)
         return yh and not self.check_ball() and abs(self.state.ball.vitesse.x) >=0
@@ -602,7 +617,7 @@ class Bibli_Goal:
     def check_goal_m(self,m=0):
         s=self.state
         b=self.bibli
-        return b.player_in_but(s.mes_goal,ZONE_GOAL + m,MODULO_GOAL)
+        return b.player_in_but(s.mes_goal,ZONE_GOAL + m,MODULO_GOAL+m)
                                      
     def check_ball(self):
         return self.has_ball_dvt()
@@ -630,7 +645,8 @@ class Bibli_Goal:
             yi=usefull().simulate(self.moi,self.state)
             return SA((yi.position-self.config.position).norm_max(0.1),V2D())
         else:
-            return SA()
+            f=self.d_but()
+            return SA((f-self.config.position).norm_max(0.1),V2D())
 
 
     def dvt(self):
@@ -724,7 +740,7 @@ class goal_two_to_two(AS):
             printn("dvt")
             self.clever.one_to_one_goal_auto1=0
             return self.dvt()
-        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
+        if ((not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb()) and not self.clever.alert:
             printn("goal")
             return self.revien_goal()
         if self.check_shoot():
@@ -737,9 +753,11 @@ class goal_two_to_two(AS):
             return self.attack()
         if self.check_stop_alert():
             printn("stop alert")
+            self.clever.alert=0
             return self.stop_alert()
         if self.check_alert():
             printn("alert")
+            self.clever.alert=1
             return self.alert()
         printn("ri")
     def __getattr__(self,name):
