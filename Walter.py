@@ -26,10 +26,11 @@ NORM_DVT=0.5
 MODULO_GOAL=2
 GOAL_ATTACK2=20
 GAMMA=1.5
-PRINT=0
+PRINT=1
 TO_GOAL=2
 TO_ATTACK=3
 TO_FORCEUR=1
+VIDE=SA(V2D(),V2D())
 
 
 class clever(object):
@@ -536,7 +537,7 @@ class Bibli_Goal:
     def check_attack(self):
         yh=self.ball_in_zone(GOAL_ATTACK)
         regle1=self.ma_position.distance(self.ball.position) < self.autre_position.distance(self.ball.position)
-        regle2=self.ball_position.distance(self.ma_position) < 20
+        regle2=self.ball_position.distance(self.ma_position) < GOAL_ATTACK
         return regle1 or regle2
     #A REVOIR
     def attack(self):
@@ -545,8 +546,9 @@ class Bibli_Goal:
 
         yi=usefull().simulate(self.moi,self.state)
         yy=self.next_position_ball(yi)
+        k=PLAYER_RADIUS + PLAYER_RADIUS + settings.maxPlayerSpeed
         printn("yi",yi)
-        if self.ball_vitesse.norm < 1 and (self.ma_position.distance(self.ball_position)<2 or self.ma_position.distance(yi.position)<2 or self.ma_position.distance(yy.position)<2):
+        if self.ball_vitesse.norm < settings.maxPlayerSpeed and (self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k):
             yi=self.ball
 #        if regles5:
 #            printn("r5")
@@ -584,12 +586,13 @@ class Bibli_Goal:
         else:
             g= self.ball_vitesse.x < 0
         ty=self.projector_ball_goal()
+        printn("check stopr alert",not self.check_goal_m(15),yh,g,self.clever.alert)
         return (not self.check_goal_m(15) or (yh and g)) and self.clever.alert==1
 
     def stop_alert(self):
         self.clever.one_to_one_goal_auto1=1
         self.alert=0
-        return self.revien_goal
+        return VIDE
     def bb(self):
         f=not self.check_goal_m(20) and self.config.vitesse.norm < 0.2 and (self.state.ball.position.distance(self.ma_position) > self.state.ball.position.distance(self.autre_position))
         if f:
@@ -640,13 +643,21 @@ class Bibli_Goal:
 
     def alert(self):
         yy=self.projector_ball_goal()
-
+        printn("alert fct",yy)
         if self.In(yy,40,50):
             yi=usefull().simulate(self.moi,self.state)
-            return SA((yi.position-self.config.position).norm_max(0.1),V2D())
+            printn(yi,self.ma_position)
+            if not self.In(yi.position.y,self.config.position.y-1,self.config.position.y+1):
+                return SA((yi.position-self.config.position).norm_max(0.1),V2D())
+            else:
+                return SA(V2D(),V2D())
         else:
             f=self.d_but()
-            return SA((f-self.config.position).norm_max(0.1),V2D())
+            printn(f,self.ma_position)
+            if not self.In(f.y,self.config.position.y-1,self.config.position.y+1):
+                return SA((f-self.config.position).norm_max(0.1),V2D())
+            else:
+                return SA(V2D(),V2D())
 
 
     def dvt(self):
@@ -668,7 +679,7 @@ class Bibli_Ball:
         return self.next_position_ball(self.state)
                                      
     def ball_in_zone(self,zone):
-        return self.ball.position.distance(self.mes_goal) <= zone
+        return abs(self.ball_position.x - self.mes_goal.x) <= zone
 
     def __getattr__(self,name):
         return  self.d.get_attr(self.state,self.d,name)
@@ -713,9 +724,11 @@ class goal_one_to_one(AS):
             return self.attack()
         if self.check_stop_alert():
             printn("stop alert")
+            self.clever.alert=0
             return self.stop_alert()
         if self.check_alert():
             printn("alert")
+            self.clever.alert=1
             return self.alert()
         printn("ri")
         return SA()
