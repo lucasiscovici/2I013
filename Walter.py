@@ -157,7 +157,7 @@ class clever(object):
         
         def check(self,bibli):
             y = self.tech[:]
-            for key, value in self.history_me.iteritems():
+            for key, value in self.history_me.items():
                 if value != bibli.id_team:
                     if key in y:
                         y.remove(key)
