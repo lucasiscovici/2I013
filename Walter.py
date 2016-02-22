@@ -42,6 +42,7 @@ class clever(object):
                 self.onetoone_begin_round=1
                 self.auto1_all=1
                 self.one_to_one_goal_auto1=1
+		self.big_flow=1
                 self.two_to_two_goal_attack=0
                 self.one_to_one_goal_attack=0
                 self.one_to_one_goal_max=0
@@ -414,13 +415,14 @@ class Bibli_Player:
         def trou(self):
             yp=self.next_position_ball_state()
             yo=self.next_position_ball(yp)
+	    print("yp",yp,"yo",yo,"hs",self.has_ball(yo,self.ma_position),"hbb",self.has_ball(yp,self.ma_position))
             return self.has_ball(yo,self.ma_position) or self.has_ball(yp,self.ma_position)
         def has_ball_dvt(self):
             him=self.near_of_me()
             return self.have_ball() and not self.dvt_lui(him.position)
 
         def check_shoot(self):
-            return self.have_ball() or self.has_ball(self.next_position_ball_state(),self.ma_position)
+            return self.have_ball()
 
         def has_ball_dvt2(self):
             him=self.near_of_me()
@@ -456,13 +458,22 @@ class Bibli_Player:
 
 
 class all(AS):
-        def __init__(self,num=0):
-            self.clever=clever()
-            self.clever.master=num
-            self.clever.master_base=num
-            self.num=num
-            self.name="ALL"
-        
+        def __init__(self,num=0,zz=0,cleverr=0):
+	    if zz==0:
+		print("clevverrrrrrrrrrrrr")
+            	self.clever=clever()
+            	self.clever.master=num
+            	self.clever.master_base=num
+            	self.num=num
+            	self.name="ALL"
+		self.clever.big_flow=1
+            else:
+          	print("clignancourt")
+		self.clever=cleverr
+            	self.clever.master=num
+            	self.num=num
+		self.clever.big_flow=1
+            	self.name="ALL"
         
             
         def compute_strategy(self,state1,id_team,id_player):
@@ -495,12 +506,21 @@ class all(AS):
             return getattr(self.state,name)
 
 class all2(AS):
-    def __init__(self,num=0):
-        self.clever=clever()
-        self.clever.master=num
-        self.num=num
-        self.name="ALL"
-
+    def __init__(self,num=0,zz=0,cleverr=0):
+	    if zz==0:
+		print("clevverrrrrrrrrrrrr")
+            	self.clever=clever()
+            	self.clever.master=num
+            	self.clever.master_base=num
+            	self.num=num
+            	self.name="ALL"
+            else:
+          	print("clignancourt")
+		self.clever=cleverr
+            	self.clever.master=num
+            	self.num=num
+            	self.name="ALL"
+	    self.clever.big_flow=2
     def compute_strategy(self,state1,id_team,id_player):
         self.state1=AllState(state1,id_team,id_player)
         self.state=Bibli(self.state1,self.clever)
@@ -568,7 +588,7 @@ class Bibli_Goal:
         yh=self.ball_in_zone(GOAL_ATTACK)
         regle1=self.ma_position.distance(self.ball.position) < self.autre_position.distance(self.ball.position)
         regle2=self.ball_position.distance(self.ma_position) < GOAL_ATTACK
-        return regle1
+        return regle1 or regle2
     #A REVOIR
     def attack(self):
         #        printn("attack-simulate")
@@ -576,7 +596,7 @@ class Bibli_Goal:
 
         yi=usefull().simulate(self.moi,self.state)
         yy=self.next_position_ball(yi)
-        k=PLAYER_RADIUS + PLAYER_RADIUS + settings.maxPlayerSpeed
+        k=PLAYER_RADIUS + BALL_RADIUS + settings.maxPlayerSpeed
         printn("yi",yi)
         if self.ball_vitesse.norm < settings.maxPlayerSpeed and (self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k):
             yi=self.ball
@@ -636,7 +656,7 @@ class Bibli_Goal:
             if k <min:
                 min=k
                 d=self.mes_goal +V2D(0,i)
-        return d
+        return d +V2D(self.mon_sens*4,0)
 
     def check_alert(self):
         yh=self.ball_in_zone(GOAL_ALERT)
@@ -720,8 +740,10 @@ class Bibli:
         self.clever=clever
         self.bibli=Bibli_Player(state,Bibli_Ball(state,usefull()))
     def to_change(self,num):
-        return all(num).compute_strategy(self.state._state,self.id_team,self.id_player)
-        
+	if self.clever.big_flow==1:
+	        return all(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
+        else:
+		return all2(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
     def __getattr__(self,name):
         return self.bibli.get_attr(self.bibli,self.state,name)
 
@@ -741,14 +763,15 @@ class goal_one_to_one(AS):
             printn("dvt")
             self.clever.one_to_one_goal_auto1=0
             return self.dvt()
-        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
-            printn("goal")
-            return self.revien_goal()
-        if self.check_shoot():
+	if self.check_shoot():
             printn("shoot")
             self.clever.one_to_one_goal_auto1=1
             self.clever.one_to_one_goal_attack=1
             return self.to_change(TO_ATTACK)
+        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
+            printn("goal")
+            return self.revien_goal()
+        
         if self.check_attack():
             printn("attack")
             return self.attack()
@@ -867,6 +890,14 @@ class attack_one_to_one(AS):
                     y=self.goal2 -self.state.ball.position
                     return SA(V2D(0,0),(y).norm_max(3.5))
                 else:
+		    if abs(self.ma_position.y - self.autre_position.y) <=10 and self.In(abs(self.ma_position.x-self.autre_position.x),0,4):
+                    	if self.autre_position.y > self.ma_position.y:
+                        	py=-1
+                    	else:
+                        	py=1
+                    	y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
+                    	printn(y)
+                    	return SA(V2D(0,0),(y).norm_max(3))
                     y=self.goal2-self.state.ball.position
                     return SA(V2D(0,0),(y).norm_max(3.5))
             else:
@@ -880,7 +911,7 @@ class attack_one_to_one(AS):
                     printn("dk")
                     y=self.goal2 + V2D(0,-3) -self.state.ball.position
                     return SA(V2D(0,0),y)
-                if abs(self.ma_position.y - self.autre_position.y) >=4 and self.In(abs(self.ma_position.x-self.autre_position.x),0,4):
+                if abs(self.ma_position.y - self.autre_position.y) >=10 and self.In(abs(self.ma_position.x-self.autre_position.x),0,4):
                     if self.autre_position.y > self.ma_position.y:
                         py=-1
                     else:
@@ -922,13 +953,13 @@ class attack_one_to_one(AS):
                         a=self._rd_angle(y,(self.ma_vitesse.angle-y.angle),self.ma_position.distance(self.ball.position)/(settings.PLAYER_RADIUS+settings.BALL_RADIUS))
                         return SA(V2D(),y)
                 else:
-                    printn("no jj")
+                    printn("no jj",self.clever.one_to_one_goal_attack)
                     if self.clever.one_to_one_goal_attack==1:
                         b=self.has_ball_merge(self.state,s,5)
                     else:
                         b=self.has_ball_merge(self.state,s,40)
                     if b:
-                        printn("20")
+                        printn("20",b)
                         yy=self.ma_position.y
                         d=abs(self.autre_position.x-self.ma_position.x)
                         if self.autre_position.y > self.ma_position.y:
@@ -953,10 +984,7 @@ class attack_one_to_one(AS):
         else:
             printn("hh")
             yi=usefull().simulate(self.moi,self.state)
-            if self.clever.one_to_one_goal_attack==1:
-                return self.attack()
-            else:
-                return SA(yi.position-self.config.position,V2D(0,0))
+            return SA(yi.position-self.config.position,V2D(0,0))
 
 
     def _rd_angle(self,shoot,dangle,dist):
@@ -977,7 +1005,7 @@ class attack_one_to_one(AS):
         if self.clever.two_to_two_goal_attack==1 and self.autre_ball():
             self.clever.two_to_two_goal_attack=0
             return self.to_change(TO_GOAL)
-        if self.clever.one_to_one_goal_attack==1 and self.autre_ball():
+        if self.clever.one_to_one_goal_attack==1 and self.autre_ball() and not self.check_shoot():
             self.clever.one_to_one_goal_attack=0
             self.clever.alert=1
             return self.to_change(TO_GOAL)
