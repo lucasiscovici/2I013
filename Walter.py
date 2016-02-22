@@ -16,7 +16,7 @@ GOAL2=V2D(T1_BUT,GAME_HEIGHT/2)
 ZONE_GOAL=0
 ANGLE1=0
 ANGLE2=math.pi
-GOAL_ATTACK=20
+GOAL_ATTACK=35
 GOAL_ALERT=60
 INCER=10
 BALLE_MIN_VITESSE=0.5578
@@ -26,7 +26,7 @@ NORM_DVT=0.5
 MODULO_GOAL=2
 GOAL_ATTACK2=20
 GAMMA=1.5
-PRINT=0
+PRINT=1
 TO_GOAL=2
 TO_ATTACK=3
 TO_FORCEUR=1
@@ -377,6 +377,36 @@ class Bibli_Player:
                 return me.x >him.x
             else:
                 return me.x <him.x
+        def attack(self):
+        #        printn("attack-simulate")
+            printn("ball",self.ball,"norm",self.ball_vitesse.norm)
+            
+            yi=usefull().simulate(self.moi,self.state)
+            yy=self.next_position_ball(yi)
+            k=PLAYER_RADIUS + PLAYER_RADIUS + settings.maxPlayerSpeed
+            printn("yi",yi)
+            if self.ball_vitesse.norm < settings.maxPlayerSpeed and (self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k):
+                yi=self.ball
+            #        if regles5:
+            #            printn("r5")
+            #            return SA((yi.position-self.config.position).norm_max(1),V2D())
+            #
+            #        if regles4:
+            #            printn("r4")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.7),V2D())
+            #
+            #        if regles3:
+            #            printn("r3")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.4),V2D())
+            #
+            #        if regles2:
+            #            printn("r2")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.3),V2D())
+            
+            return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
 
         def has_ball_next(self):
             f=self.next_position_ball_state()
@@ -538,7 +568,7 @@ class Bibli_Goal:
         yh=self.ball_in_zone(GOAL_ATTACK)
         regle1=self.ma_position.distance(self.ball.position) < self.autre_position.distance(self.ball.position)
         regle2=self.ball_position.distance(self.ma_position) < GOAL_ATTACK
-        return regle1 or regle2
+        return regle1
     #A REVOIR
     def attack(self):
         #        printn("attack-simulate")
@@ -594,7 +624,7 @@ class Bibli_Goal:
         self.alert=0
         return VIDE
     def bb(self):
-        f=not self.check_goal_m(20) and self.config.vitesse.norm < 0.2 and (self.state.ball.position.distance(self.ma_position) > self.state.ball.position.distance(self.autre_position))
+        f=not self.check_goal_m(20) and (self.state.ball.position.distance(self.ma_position) > self.state.ball.position.distance(self.autre_position))
         if f:
             self.clever.one_to_one_goal_auto1=1
         return f
@@ -612,7 +642,7 @@ class Bibli_Goal:
         yh=self.ball_in_zone(GOAL_ALERT)
         return yh and not self.check_ball() and abs(self.state.ball.vitesse.x) >=0
     def check_no_goal(self):
-        return self.ball.position.distance(self.ma_position) < self.ball.position.distance(self.autre.position) or self.ball.position.distance(self.ma_position) < 20
+        return self.ball.position.distance(self.ma_position) < self.ball.position.distance(self.autre.position)
     
     def check_goal(self):
         return ( self.check_goal_m(0))
@@ -647,7 +677,7 @@ class Bibli_Goal:
         if self.In(yy,40,50):
             yi=usefull().simulate(self.moi,self.state)
             printn(yi,self.ma_position)
-            if not self.In(yi.position.y,self.config.position.y-1,self.config.position.y+1):
+            if True:
                 return SA((yi.position-self.config.position).norm_max(0.1),V2D())
             else:
                 return SA(V2D(),V2D())
@@ -841,11 +871,11 @@ class attack_one_to_one(AS):
                     return SA(V2D(0,0),(y).norm_max(3.5))
             else:
                 printn("n")
-#                printn("jj",self.ma_position, self.autre_position,abs(self.ma_position.y - self.autre_position.y) >=4,self.In(abs(self.ma_position.x-self.autre_position.x),0,4))
+                printn("jj",self.ma_position, self.autre_position,abs(self.ma_position.y - self.autre_position.y) >=4,self.In(abs(self.ma_position.x-self.autre_position.x),0,4))
                 if self.has_ball(self._state,self.autre_position):
-#                    printn("bobo")
+                    printn("bobo")
                     return SA(V2D(),V2D((600)*self.mon_sens,-200))
-                jj=usefull().has_ball_merge(self.state,s,10)
+                jj=usefull().has_ball_merge(self.state,s,11)
                 if abs(self.goal2.x- (self.config.position.x)) <=30:
                     printn("dk")
                     y=self.goal2 + V2D(0,-3) -self.state.ball.position
@@ -856,7 +886,7 @@ class attack_one_to_one(AS):
                     else:
                         py=1
                     y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
-#                    printn(y)
+                    printn(y)
                     return SA(V2D(0,0),(y).norm_max(3))
                 if jj:
                     printn("jj")
@@ -884,15 +914,20 @@ class attack_one_to_one(AS):
                         pm=V2D(self.autre_position.x ,yy)-self.ball.position
                         y=V2D(self.autre_position.x ,yy)-ys.position
                         yi=y
-                        if d < 8:
-                            y=y+V2D(d*1.5,0)*self.mon_sens
-                            pm=pm+V2D(d*1.5,0)*self.mon_sens
-                        y=(pm).norm_max(1.1)
+                        if d < 12:
+                            y=y-V2D(d*0.9,0)*self.mon_sens
+                            pm=pm+V2D(d*0.6,0)*self.mon_sens
+                        y=(pm).norm_max(2.1)
+                        printn("ic",y)
                         a=self._rd_angle(y,(self.ma_vitesse.angle-y.angle),self.ma_position.distance(self.ball.position)/(settings.PLAYER_RADIUS+settings.BALL_RADIUS))
                         return SA(V2D(),y)
                 else:
                     printn("no jj")
-                    if self.has_ball_merge(self.state,s,40):
+                    if self.clever.one_to_one_goal_attack==1:
+                        b=self.has_ball_merge(self.state,s,5)
+                    else:
+                        b=self.has_ball_merge(self.state,s,40)
+                    if b:
                         printn("20")
                         yy=self.ma_position.y
                         d=abs(self.autre_position.x-self.ma_position.x)
@@ -912,14 +947,17 @@ class attack_one_to_one(AS):
 
                     else:
                         printn("norm")
-                        return SA(V2D(0,0),(self.goal2-self.ma_position).norm_max(1.0))
+                        return SA(V2D(0,0),(self.goal2-self.ma_position).norm_max(0.8))
                                 
         
         else:
             printn("hh")
             yi=usefull().simulate(self.moi,self.state)
-            
-            return SA(yi.position-self.config.position,V2D(0,0))
+            if self.clever.one_to_one_goal_attack==1:
+                return self.attack()
+            else:
+                return SA(yi.position-self.config.position,V2D(0,0))
+
 
     def _rd_angle(self,shoot,dangle,dist):
         eliss = lambda x, alpha: (math.exp(alpha*x)-1)/(math.exp(alpha)-1)
