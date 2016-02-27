@@ -415,7 +415,7 @@ class Bibli_Player:
         def trou(self):
             yp=self.next_position_ball_state()
             yo=self.next_position_ball(yp)
-	    print("yp",yp,"yo",yo,"hs",self.has_ball(yo,self.ma_position),"hbb",self.has_ball(yp,self.ma_position))
+	    printn("yp",yp,"yo",yo,"hs",self.has_ball(yo,self.ma_position),"hbb",self.has_ball(yp,self.ma_position))
             return self.has_ball(yo,self.ma_position) or self.has_ball(yp,self.ma_position)
         def has_ball_dvt(self):
             him=self.near_of_me()
@@ -460,7 +460,7 @@ class Bibli_Player:
 class all(AS):
         def __init__(self,num=0,zz=0,cleverr=0):
 	    if zz==0:
-		print("clevverrrrrrrrrrrrr")
+		printn("clevverrrrrrrrrrrrr")
             	self.clever=clever()
             	self.clever.master=num
             	self.clever.master_base=num
@@ -468,7 +468,7 @@ class all(AS):
             	self.name="ALL"
 		self.clever.big_flow=1
             else:
-          	print("clignancourt")
+          	printn("clignancourt")
 		self.clever=cleverr
             	self.clever.master=num
             	self.num=num
@@ -508,14 +508,14 @@ class all(AS):
 class all2(AS):
     def __init__(self,num=0,zz=0,cleverr=0):
 	    if zz==0:
-		print("clevverrrrrrrrrrrrr")
+		printn("clevverrrrrrrrrrrrr")
             	self.clever=clever()
             	self.clever.master=num
             	self.clever.master_base=num
             	self.num=num
             	self.name="ALL"
             else:
-          	print("clignancourt")
+          	printn("clignancourt")
 		self.clever=cleverr
             	self.clever.master=num
             	self.num=num
