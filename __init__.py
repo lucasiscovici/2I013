@@ -1,4 +1,4 @@
-import soccersimulator, soccersimulator.settings,math,Walter as W
+import soccersimulator, soccersimulator.settings,math,Walter2 as W
 from soccersimulator.settings import *
 from soccersimulator import  SoccerTeam as STe,SoccerMatch as SM, Player, SoccerTournament as ST, BaseStrategy as AS, SoccerAction as SA, Vector2D as V2D,SoccerState as SS
 settings=soccersimulator.settings
