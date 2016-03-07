@@ -26,16 +26,19 @@ NORM_DVT=0.5
 MODULO_GOAL=2
 GOAL_ATTACK2=20
 GAMMA=1.5
-PRINT=0
-PRINTN=0
+PRINT=1
+PRINTN=1
 TO_GOAL=2
 TO_ATTACK=3
 TO_FORCEUR=1
+TIR_ZONE_ATTACK=30
+TIR_NORM=3.5
 VIDE=SA(V2D(),V2D())
 
 ###############################################
 #INIT STRATEGIES################################
 ###############################################
+
 #STRATEGIE PRINCIPALE AVEC CHANGEMENT GLOBALE, DISPACHE AU STRATEGIE CORRESPONDANT AU NOMBRE DE JOUEUR
 class all(AS):
         def __init__(self,num=0,zz=0,cleverr=0):
@@ -43,9 +46,9 @@ class all(AS):
                 printn("clevverrrrrrrrrrrrr pas de clever")
             	self.clever=clever()
                 printnn("maste  ",self.clever.master_base,self.clever.master)
-            	self.clever.master=num
-            	self.clever.master_base=num
-            	self.num=num
+            	self.clever.master=num	
+            	self.clever.master_round=num
+		self.num=num
             	self.name="ALL"
                 self.clever.big_flow=1
             else:
@@ -74,15 +77,15 @@ class all(AS):
 
         def begin_round(self, team1, team2, state):
             return self.clever.begin_round()
+
         def end_match(self, team1, team2, state):
             return self.clever.end_match()
         
         def begin_match(self, team1, team2, state):
-            return self.clever.begin_match()
+            return self.clever.begin_match(self.num)
         
         def end_round(self, team1, team2, state):
             return self.clever.end_round(state,self.state)
-
 
         def __getattr__(self,name):
             return getattr(self.state,name)
@@ -94,7 +97,7 @@ class all2(AS):
 #		printnn("clevverrrrrrrrrrrrr")
             	self.clever=clever()
             	self.clever.master=num
-            	self.clever.master_base=num
+            	self.clever.master_round=num
             	self.num=num
             	self.name="ALL"
             else:
@@ -104,6 +107,7 @@ class all2(AS):
             	self.num=num
             	self.name="ALL"
 	    self.clever.big_flow=2
+
     def compute_strategy(self,state1,id_team,id_player):
         self.state1=AllState(state1,id_team,id_player)
         self.state=Bibli(self.state1,self.clever)
@@ -120,7 +124,6 @@ class all2(AS):
     def begin_round(self, team1, team2, state):
         return self.clever.begin_round()
     
-    
     def __getattr__(self,name):
         return getattr(self.state,name)
 
@@ -133,13 +136,13 @@ class illumination_one_to_one(AS):
     def compute_strategy(self,state):
         self.state=state
         if self.state.clever.one_to_one_goal_attack:
-			return attack_one_to_one(state).compute_strategy()
+		return attack_one_to_one(state).compute_strategy()
         if self.id==1:
-			return forceur(state).compute_strategy()
+		return forceur(state).compute_strategy()
         elif self.id==2:
-			return goal_one_to_one(Bibli_Goal(state)).compute_strategy()
+		return goal_one_to_one(Bibli_Goal(state)).compute_strategy()
         elif self.id==3:
-			return attack_one_to_one(state).compute_strategy()
+		return attack_one_to_one(state).compute_strategy()
                 
     def __getattr__(self,name):
         return getattr(self.state,name)
@@ -157,16 +160,16 @@ class illumination_two_to_two(AS):
         if self.id==1:
             return forceur(state).compute_strategy()
         elif self.id==2:
-            return goal_one_to_one(Bibli_Goal(state)).compute_strategy()
+            return goal_two_to_two(Bibli_Goal(state)).compute_strategy()
         elif self.id==3:
-            return attack_one_to_one(state).compute_strategy()
+            return attack_two_to_two(state).compute_strategy()
 
 
 
 ##########################################
 #INIT DECORATEUR + BIBLI##################
 ##########################################
-#DECORATEUR PRINCIPALE
+#DECORATEUR PRINCIPALE INIT (GETTER)
 class AllState:
     def __init__(self,state,id_team,id_player):
         self.state=StatePlayer(StateBall(StateTerrain(state,id_team,id_player),id_team,id_player),id_team,id_player)
@@ -175,17 +178,20 @@ class AllState:
     
     def __getattr__(self,name):
         return getattr(self.state,name)
-#BIBLIOTHEQUE PRINCIPALE
+
+#BIBLIOTHEQUE PRINCIPALE INIT (FCT) 
 class Bibli:
     def __init__(self,state,clever=0):
         self.state=state
         self.clever=clever
         self.bibli=Bibli_Player(state,Bibli_Ball(state,usefull()))
+
     def to_change(self,num):
 	if self.clever.big_flow==1:
 	        return all(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
         else:
 		return all2(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
+
     def __getattr__(self,name):
         return self.bibli.get_attr(self.bibli,self.state,name)
 
@@ -198,7 +204,7 @@ class goal_one_to_one(AS):
         AS.__init__(self,"goal_one_to_one")
         self.state=state
     def compute_strategy(self):
-        printnn("oco goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
+        printn("oco goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
         if self.trou() and not self.check_shoot():
             printnn("trou")
             return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
@@ -233,17 +239,20 @@ class goal_one_to_one(AS):
 
     def __getattr__(self,name):
         return getattr(self.state,name)
-
 class goal_two_to_two(AS):
     def __init__(self,state):
         AS.__init__(self,"goal_one_to_one")
         self.state=state
-    
-                                     
     def compute_strategy(self):
-        printnn("oco 2goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
-        if self.clever.alert==1:
-            return self.alert()
+        printn("oco goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
+        if self.trou() and not self.check_shoot():
+            printnn("trou")
+            return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
+        if self.check_shoot() and not self.dvt_adv2or():
+            printnn("shoot")
+            self.clever.one_to_one_goal_auto1=1
+            self.clever.one_to_one_goal_attack=1
+            return self.to_change(TO_ATTACK)
         if self.check_no_goal():
             printnn("no goal")
             self.clever.one_to_one_goal_auto1=0
@@ -251,14 +260,9 @@ class goal_two_to_two(AS):
             printnn("dvt")
             self.clever.one_to_one_goal_auto1=0
             return self.dvt()
-        if ((not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb()) and not self.clever.alert:
+        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
             printnn("goal")
             return self.revien_goal()
-        if self.check_shoot():
-            printnn("shoot")
-            self.clever.one_to_one_goal_auto1=1
-            self.clever.one_to_one_goal_attack=1
-            return self.to_change(TO_ATTACK)
         if self.check_attack():
             printnn("attack")
             return self.attack()
@@ -271,9 +275,10 @@ class goal_two_to_two(AS):
             self.clever.alert=1
             return self.alert()
         printnn("ri")
+        return SA()
+
     def __getattr__(self,name):
         return getattr(self.state,name)
-
 ###################################################
 #BIBLI GOAL#######################################
 ###################################################
@@ -284,6 +289,7 @@ class Bibli_Goal:
     def revien_goal(self):
         s=self.state
         return SA(s.goal - s.ma_position,V2D())
+
     # A REVOIR
     def check_attack(self):
         yh=self.ball_in_zone(GOAL_ATTACK)
@@ -297,10 +303,11 @@ class Bibli_Goal:
 
         yi=usefull().simulate(self.moi,self.state)
         yy=self.next_position_ball(yi)
-        k=PLAYER_RADIUS + BALL_RADIUS + settings.maxPlayerSpeed +5
+        k=PLAYER_RADIUS + BALL_RADIUS + settings.maxPlayerSpeed +2
         printnn("yfai",yi)
         if self.ball_vitesse.norm < settings.maxPlayerSpeed and ((self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k))  :
-            yi=self.ball
+		print "kk"
+           	yi=self.ball
 #        if regles5:
 #            printnn("r5")
 #            return SA((yi.position-self.config.position).norm_max(1),V2D())
@@ -320,7 +327,7 @@ class Bibli_Goal:
 #
 #            return SA((yi.position-self.config.position).norm_max(0.3),V2D())
 
-        return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
+       	return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
     
     
     def shoot(self):
@@ -429,44 +436,290 @@ class Bibli_Goal:
 #############################################
 class attack_two_to_two(AS):
     def __init__(self,state):
-        AS.__init__(self,"goal_one_to_one")
         self.state=state
-                                     
-    def compute_strategy(self):
-#        printnn("attack t oooooooooooooooooooooooo",self.id_team,self.id_player)
+    
+    def trouve(self):
+        a=self.autre_position.y
+    
+    def next_position_adv_ball(self):
+	if self.dvt_adv2or():
+		ai=self.dvt_adv2qui()
+		pi=self.player(self._autre,ai)
+	else:
+		pi=self.autre
+	action_ball = self.ball_position - pi.position
+        s = self.next_position_player(action_ball, pi)
+	return s 
 
-        if (self.state.ball.position.distance(self.config.position) <= (PLAYER_RADIUS + BALL_RADIUS) ) :
-            if abs(self.goal2.x - (self.config.position.x)) <=40:
-                y=(self.goal2+ V2D(0,-3)-self.state.ball.position).norm_max(3)
-                return SA(V2D(),y)
-            else:
-                dis = self.ball.position - self.autre_player.position
-                self.yp=self.autre_player
-                moi = self.config.position
-                s = usefull().next_position_player(dis, self.autre_player)
-                jj=usefull().has_ball_merge(self.state,s,10)
-                if jj:
-                    if abs(self.goal2.x- (self.config.position.x)) <=40:
-                        y=self.goal2 + V2D(0,3)-self.state.ball.position
-                        return SA(V2D(0,0),y)
-                    else:
-                        yy=GAME_HEIGHT-self.yp.position.y 
-                        while abs(yy-self.yp.position.y) <=15:
-                            yy=yy*1.5
-                        y=V2D(self.ball.position.x+70*self.sens ,yy)-self.state.ball.position
-                        y=(y).norm_max(2)
-                        return SA(V2D(0,0),y)
+    def joueur_pres_de_moi(self):
+	if self.dvt_adv2or():
+		ai=self.dvt_adv2qui()
+		pi=self.player(self._autre,ai)
+	else:
+		pi=self.autre
+	r1=self.ma_position.y - pi.position.y <=10
+	r2=self.ma_position.y - pi.position.y >=0
+	e1=r1 and r2
+	r3=pi.position.y - self.ma_position.y <=10
+	r4=pi.position.y - self.ma_position.y >=0
+	e2=r3 and r4
+	r5=self.In(abs(self.ma_position.x-pi.position.x),0,3)
+	ef1=e1 and r5
+	ef2=e2 and r5
+	
+
+	if self.ma_position.y>=self.mes_goal.y:
+		return ef1
+	else:
+		return ef2
+
+    def check_tir(self):
+	return self.autre_goal.distance(self.ma_position)<=TIR_ZONE_ATTACK
+
+    def attack_o(self):
+        printnn("STRAT attack",self.id_team,self.id_player)
+        if self.have_ball() :
+            printnn("j\'ai la balle")
+            auto_dvt_adv=self.dvt_adv2()
+            next_position_adv_ball=self.next_position_adv_ball()
+            if auto_dvt_adv:
+                printnn("Je suis dvt adv")
+                if self.check_tir():
+                    printnn("Je peux tirer")
+                    y=self.action_ball_moi()
+                    return SA(V2D(0,0),(y).norm_max(TIR_NORM))
                 else:
-                    return SA(V2D(0,0),(self.goal2-self.state.ball.position).norm_max(0.4))
+                    printnn("Je ne peux pas tirer (ma position, adv pos)",self.ma_position,self.autre_position)
 
+                    if self.joueur_pres_de_moi():
+                        printnn("Joueur pres de moi")
+                    	if self.autre_position.y > self.ma_position.y:
+                        	py=-1
+                    	else:
+                        	py=1
+
+                    	y=V2D(self.ball_position.x+1.5*self.mon_sens,self.ball_position.y) -self.ball_position
+                    	printnn(y)
+			if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball):
+                    		printnn("adv a la balle")
+                    		return SA(V2D(),V2D((600)*self.mon_sens,-200))
+                	if self.autre_ball():
+				yy=self.ma_position.y
+				d=abs(self.autre_position.x-self.ma_position.x)
+				if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+					yy=self.ball_position.y
+				else:
+					if self.autre_position.y > self.ma_position.y:
+				    		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+							yy=yy-0.25
+							if yy == 0:
+					    			break
+					else:
+				   		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER :
+							yy=yy+0.25
+							if yy == GAME_HEIGHT:
+					    			break
+
+				pm=V2D(self.ball_position.x ,yy)-self.ball.position
+				y=(pm).norm_max(1.1)
+				printnn("ic",y)
+				return SA(V2D(),y)
+			else:
+                    		return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+		    else:
+			printnn("Joueur pas pres de moi")
+                    	nom=3.5
+                    	y=self.goal2-self.state.ball.position
+                    	return SA(V2D(0,0),(y).norm_max(nom))
+            else:
+                printnn("Je suis derriere adv")
+		if self.dvt_adv2or():
+			printnn("je suis dvt un joueur")
+			ai=self.dvt_adv2qui()
+			pi=self.player(self._autre,ai)
+			auto_adv_ball_next=self.has_ball_merge(self.state,next_position_adv_ball,8)
+		        if self.check_tir():
+		            printnn("Je peux tirer")
+			    ball=self.action_ball_moi()
+		            y=self.autre_goal-self.ball_position
+		            return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+
+		        if self.joueur_pres_de_moi():
+		                printnn("Joueur pres de moi")
+		            	if pi.position.y > self.ma_position.y:
+		                	py=-1
+		            	else:
+		                	py=1
+				if self.autre_ball() or auto_adv_ball_next :
+				
+					yy=self.ma_position.y
+					d=abs(pi.position.x-self.ma_position.x)
+					if abs(yy-pi.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+						yy=self.ball_position.y
+					else:
+						if pi.position.y > self.ma_position.y:
+					    		while abs(yy-pi.position.y) <=d/1.5 +RAYON_BALL_PLAYER-0.5:
+								yy=yy-0.25
+								if yy == 0:
+						    			break
+						else:
+					   		while abs(yy-pi.position.y) <=d/1.5 +RAYON_BALL_PLAYER -0.5:
+								yy=yy+0.25
+								if yy == GAME_HEIGHT:
+						    			break
+
+					pm=V2D(self.ball_position.x+1*self.sens ,yy)-self.ball.position
+					y=(pm).norm_max(1.1)
+					printnn("ic",y)
+					return SA(V2D(),y)
+		            	y=V2D(self.ball_position.x+1*self.sens,self.ball_position.y) -self.ball_position
+		            	return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+		        if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball) or auto_adv_ball_next:
+		            printnn("adv a la balle")
+		            return SA(V2D(),V2D((600)*self.mon_sens,-200))
+			if auto_adv_ball_next:
+		                printnn("Adv aura la balle")
+				yy=self.ma_position.y
+				d=abs(pi.position.x-self.ma_position.x)
+				if abs(yy-pi.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+					yy=self.ball_position.y
+				else:
+					if pi.position.y > self.ma_position.y:
+					    while abs(yy-pi.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+						yy=yy-0.25
+						if yy == 0:
+						    break
+					else:
+					    while abs(yy-pi.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+						yy=yy+0.25
+						if yy == GAME_HEIGHT:
+						    break
+
+					pm=V2D(self.ball_position.x +1*self.sens ,yy)-self.ball.position
+					y=(pm).norm_max(1.1)
+					printnn("ic",y)
+					return SA(V2D(),y)
+			else:
+				printnn("Adv n\'aura pas la balle",self.clever.one_to_one_goal_attack)
+				if self.autre_position.y > self.ma_position.y:
+				    py=-1
+				else:
+				    py=1
+				if self.In(abs(self.ma_position.y-self.autre_position.y),0,3):
+				    nom=0.8
+				else:
+				    nom=1.5
+				y=self.goal2 - self.state.ball.position
+				return SA(V2D(0,0),(y).norm_max(nom))
+		else:
+			print("je suis derriere tout le monde")
+		
+		        if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball):
+		            printnn("adv a la balle")
+		            return SA(V2D(),V2D((600)*self.mon_sens,-200))
+
+		        auto_adv_ball_next=self.has_ball_merge(self.state,next_position_adv_ball,8)
+
+		        if self.check_tir():
+		            printnn("Je peux tirer")
+			    ball=self.action_ball_moi()
+		            y=self.autre_goal-self.ball_position
+		            return SA(V2D(0,0),y)
+
+		        if self.joueur_pres_de_moi():
+		                printnn("Joueur pres de moi")
+		            	if self.autre_position.y > self.ma_position.y:
+		                	py=-1
+		            	else:
+		                	py=1
+				if self.autre_ball() or auto_adv_ball_next :
+				
+					yy=self.ma_position.y
+					d=abs(self.autre_position.x-self.ma_position.x)
+					if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+						yy=self.ball_position.y
+					else:
+						if self.autre_position.y > self.ma_position.y:
+					    		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER-0.5:
+								yy=yy-0.25
+								if yy == 0:
+						    			break
+						else:
+					   		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER -0.5:
+								yy=yy+0.25
+								if yy == GAME_HEIGHT:
+						    			break
+
+					pm=V2D(self.ball_position.x+1*self.sens ,yy)-self.ball.position
+					y=(pm).norm_max(1.1)
+					printnn("ic",y)
+					return SA(V2D(),y)
+		            	y=V2D(self.ball_position.x+1*self.sens,self.ball_position.y) -self.ball_position
+		            	return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+		        if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball) or auto_adv_ball_next:
+		            printnn("adv a la balle")
+		            return SA(V2D(),V2D((600)*self.mon_sens,-200))
+			if auto_adv_ball_next:
+		                printnn("Adv aura la balle")
+				yy=self.ma_position.y
+				d=abs(self.autre_position.x-self.ma_position.x)
+				if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+					yy=self.ball_position.y
+				else:
+					if self.autre_position.y > self.ma_position.y:
+					    while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+						yy=yy-0.25
+						if yy == 0:
+						    break
+					else:
+					    while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+						yy=yy+0.25
+						if yy == GAME_HEIGHT:
+						    break
+
+					pm=V2D(self.ball_position.x +1*self.sens ,yy)-self.ball.position
+					y=(pm).norm_max(1.1)
+					printnn("ic",y)
+					return SA(V2D(),y)
+               		else:
+				printnn("Adv n\'aura pas la balle",self.clever.one_to_one_goal_attack)
+				if self.autre_position.y > self.ma_position.y:
+				    py=-1
+				else:
+				    py=1
+				if self.In(abs(self.ma_position.y-self.autre_position.y),0,3):
+				    nom=0.8
+				else:
+				    nom=1.5
+				y=self.autre_goal-self.ball_position
+				printn("y aut",y)
+				return SA(V2D(0,0),(y).norm_max(nom))
+                                
+        
         else:
-            ballpro=self.next_position_ball_state()
-            return SA(ballpro.position-self.config.position,V2D(0,0))
-   
-    def __getattr__(self,name):
-        return getattr(self.state,name)
+		printnn("j\'ai pas la balle")
+		yi=usefull().simulate(self.moi,self.state)
+		return SA(yi.position-self.config.position,V2D(0,0))
 
+
+    def compute_strategy(self):
+        if self.trou() and not self.check_shoot():
+            printnn("trou")
+            return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
+        if self.clever.two_to_two_goal_attack==1 and self.autre_ball() and not self.check_shoot() or (self.has_ball(self.state,self.player(self.id_team,1-self.id_player).position) and self.clever.two_to_two_goal_attack==1):
+            self.clever.two_to_two_goal_attack=0
+            return self.to_change(TO_GOAL)
+        if self.clever.one_to_one_goal_attack==1 and self.autre_ball() and not self.check_shoot():
+            self.clever.one_to_one_goal_attack=0
+            self.clever.alert=1
+            return self.to_change(TO_GOAL)
+        
+        return self.attack_o()
                                      
+    def __getattr__(self,name):
+       return getattr(self.state,name)
+
+                                                                      
 class attack_one_to_one(AS):
     def __init__(self,state):
         self.state=state
@@ -474,152 +727,182 @@ class attack_one_to_one(AS):
     def trouve(self):
         a=self.autre_position.y
     
+    def next_position_adv_ball(self):
+	action_ball = self.action_ball_adv()
+        s = self.next_position_player(action_ball, self.autre_player)
+	return s 
+
+    def joueur_pres_de_moi(self):
+	r1=self.ma_position.y - self.autre_position.y <=10
+	r2=self.ma_position.y - self.autre_position.y >=0
+	e1=r1 and r2
+	r3=self.autre_position.y - self.ma_position.y <=10
+	r4=self.autre_position.y - self.ma_position.y >=0
+	e2=r3 and r4
+	r5=self.In(abs(self.ma_position.x-self.autre_position.x),0,3)
+	ef1=e1 and r5
+	ef2=e2 and r5
+	
+
+	if self.ma_position.y>=self.mes_goal.y:
+		return ef1
+	else:
+		return ef2
+
+    def check_tir(self):
+	return self.autre_goal.distance(self.ma_position)<=TIR_ZONE_ATTACK
+
+
     def attack_o(self):
-        printnn("oco attack",self.id_team,self.id_player)
-        if (self.state.ball.position.distance(self.config.position) <= (PLAYER_RADIUS + BALL_RADIUS) ) :
-            printnn("bba")
-            e=self.has_ball_dvt2()
-            dis = self.ball.position - self.autre_player.position
-            moi = self.config.position
-            s = usefull().next_position_player(dis, self.autre_player)
-            if e:
-                printnn("e")
-                if abs(self.goal2.x- (self.config.position.x)) <=30:
-                    printnn("e 35")
-
-#                    self.trouve()
-                    y=self.goal2 -self.state.ball.position
-                    return SA(V2D(0,0),(y).norm_max(3.5))
+        printnn("STRAT attack",self.id_team,self.id_player)
+        if self.have_ball() :
+            printnn("j\'ai la balle")
+            auto_dvt_adv=self.dvt_adv()
+            next_position_adv_ball=self.next_position_adv_ball()
+            if auto_dvt_adv:
+                printnn("Je suis dvt adv")
+                if self.check_tir():
+                    printnn("Je peux tirer")
+                    y=self.action_ball_moi()
+                    return SA(V2D(0,0),(y).norm_max(TIR_NORM))
                 else:
-                    printnn("nit e",self.ma_position,self.autre_position)
+                    printnn("Je ne peux pas tirer (ma position, adv pos)",self.ma_position,self.autre_position)
 
-                    if ((self.ma_position.y - self.autre_position.y <=10 and self.ma_position.y - self.autre_position.y >=0 and self.In_m(self.ma_position.y,GAME_HEIGHT,20)) or (self.autre_position.y - self.ma_position.y <=10 and self.autre_position.y - self.ma_position.y >=0 and self.In_m(self.ma_position.y,0,20))) and self.In(abs(self.ma_position.x-self.autre_position.x),0,3):
-                        printnn("abss")
-
+                    if self.joueur_pres_de_moi():
+                        printnn("Joueur pres de moi")
                     	if self.autre_position.y > self.ma_position.y:
                         	py=-1
                     	else:
                         	py=1
-                    	y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
+
+                    	y=V2D(self.ball_position.x+1.5*self.mon_sens,self.ball_position.y) -self.ball_position
                     	printnn(y)
-                    	return SA(V2D(0,0),(y).norm_max(3))
-                    if self.In(abs(self.autre_goal.x-self.autre_position.x),0,30):
-                        nom=1
-                    else:
-                        nom=3.5
-                    y=self.goal2-self.state.ball.position
-                    return SA(V2D(0,0),(y).norm_max(nom))
+			if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball):
+                    		printnn("adv a la balle")
+                    		return SA(V2D(),V2D((600)*self.mon_sens,-200))
+                	if self.autre_ball():
+				yy=self.ma_position.y
+				d=abs(self.autre_position.x-self.ma_position.x)
+				if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+					yy=self.ball_position.y
+				else:
+					if self.autre_position.y > self.ma_position.y:
+				    		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+							yy=yy-0.25
+							if yy == 0:
+					    			break
+					else:
+				   		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER :
+							yy=yy+0.25
+							if yy == GAME_HEIGHT:
+					    			break
+
+				pm=V2D(self.ball_position.x ,yy)-self.ball.position
+				y=(pm).norm_max(1.1)
+				printnn("ic",y)
+				return SA(V2D(),y)
+			else:
+                    		return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+		    else:
+			printnn("Joueur pas pres de moi")
+                    	nom=3.5
+                    	y=self.goal2-self.state.ball.position
+                    	return SA(V2D(0,0),(y).norm_max(nom))
             else:
-                printnn("n")
-                printnn("jj",self.ma_position, self.autre_position,abs(self.ma_position.y - self.autre_position.y) >=4,self.In(abs(self.ma_position.x-self.autre_position.x),0,4))
-                if self.has_ball(self._state,self.autre_position):
-                    printnn("bobo")
+                printnn("Je suis derriere adv")
+
+                if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball):
+                    printnn("adv a la balle")
                     return SA(V2D(),V2D((600)*self.mon_sens,-200))
-                jj=usefull().has_ball_merge(self.state,s,8)
-                if abs(self.goal2.x- (self.config.position.x)) <=30:
-                    printnn("dk")
-                    y=self.goal2 + V2D(0,-3) -self.state.ball.position
+
+                auto_adv_ball_next=self.has_ball_merge(self.state,next_position_adv_ball,8)
+
+                if self.check_tir():
+                    printnn("Je peux tirer")
+		    ball=self.action_ball_moi()
+                    y=self.autre_goal-self.ball_position
                     return SA(V2D(0,0),y)
-                if abs(self.ma_position.y - self.autre_position.y) >=10 and self.In(abs(self.ma_position.x-self.autre_position.x),0,4):
-                    printnn("o")
-                    if self.autre_position.y > self.ma_position.y:
-                        py=-1
-                    else:
-                        py=1
-                    y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
-                    printnn(y)
-                    return SA(V2D(0,0),(y).norm_max(3))
-                if jj:
-                    printnn("jj")
-                    if abs(self.goal2.x- (self.config.position.x)) <=20:
-                        printnn("40")
-                        y=self.goal2 -self.state.ball.position
-                        return SA(V2D(0,0),y)
-                    else:
-                        printnn("else")
-                        yy=self.ma_position.y
-                        d=abs(self.autre_position.x-self.ma_position.x)
-                        if self.autre_position.y > self.ma_position.y:
-                            
-                            while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
-                                yy=yy-0.25
-                                if yy == 0:
-                                    break
-                        else:
-                            while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
-                                yy=yy+0.25
-                                if yy == GAME_HEIGHT:
-                                    break
-                        
-                        ys=self.next_position_ball_state()
-                        pm=V2D(self.autre_position.x ,yy)-self.ball.position
-                        y=V2D(self.autre_position.x ,yy)-ys.position
-                        yi=y
-#                        if d < 12:
-#                            y=y-V2D(d*0.9,0)*self.mon_sens
-#                            pm=pm+V2D(d*0.6,0)*self.mon_sens
-                        y=(pm).norm_max(2.1)
-                        printnn("ic",y)
-                        a=self._rd_angle(y,(self.ma_vitesse.angle-y.angle),self.ma_position.distance(self.ball.position)/(settings.PLAYER_RADIUS+settings.BALL_RADIUS))
-                        return SA(V2D(),y)
+
+                if self.joueur_pres_de_moi():
+                        printnn("Joueur pres de moi")
+                    	if self.autre_position.y > self.ma_position.y:
+                        	py=-1
+                    	else:
+                        	py=1
+			if self.autre_ball() or auto_adv_ball_next :
+				
+				yy=self.ma_position.y
+				d=abs(self.autre_position.x-self.ma_position.x)
+				if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+					yy=self.ball_position.y
+				else:
+					if self.autre_position.y > self.ma_position.y:
+				    		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER-0.5:
+							yy=yy-0.25
+							if yy == 0:
+					    			break
+					else:
+				   		while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER -0.5:
+							yy=yy+0.25
+							if yy == GAME_HEIGHT:
+					    			break
+
+				pm=V2D(self.ball_position.x+1*self.sens ,yy)-self.ball.position
+				y=(pm).norm_max(1.1)
+				printnn("ic",y)
+				return SA(V2D(),y)
+                    	y=V2D(self.ball_position.x+1*self.sens,self.ball_position.y) -self.ball_position
+                    	return SA(V2D(0,0),(y).norm_max(TIR_NORM))
+                if self.autre_ball() or self.has_ball(self.ball,next_position_adv_ball) or auto_adv_ball_next:
+                    printnn("adv a la balle")
+                    return SA(V2D(),V2D((600)*self.mon_sens,-200))
+		if auto_adv_ball_next:
+                        printnn("Adv aura la balle")
+			yy=self.ma_position.y
+			d=abs(self.autre_position.x-self.ma_position.x)
+			if abs(yy-self.autre.position.y) > d/1.5 +RAYON_BALL_PLAYER:
+				yy=self.ball_position.y
+			else:
+				if self.autre_position.y > self.ma_position.y:
+				    while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+					yy=yy-0.25
+					if yy == 0:
+					    break
+				else:
+				    while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
+					yy=yy+0.25
+					if yy == GAME_HEIGHT:
+					    break
+
+				pm=V2D(self.ball_position.x +1*self.sens ,yy)-self.ball.position
+				y=(pm).norm_max(1.1)
+				printnn("ic",y)
+				return SA(V2D(),y)
                 else:
-                    printnn("no jj",self.clever.one_to_one_goal_attack)
-                    b=self.has_ball_merge(self.state,s,5)
-
-                    if b:
-                        printnn("20",b)
-                        yy=self.ma_position.y
-                        d=abs(self.autre_position.x-self.ma_position.x)
-                        if self.autre_position.y > self.ma_position.y:
-                            
-                            while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
-                                yy=yy-0.25
-                                if yy == 0:
-                                    break
-                        else:
-                            while abs(yy-self.autre.position.y) <=d/1.5 +RAYON_BALL_PLAYER:
-                                yy=yy+0.25
-                                if yy == GAME_HEIGHT:
-                                    break
-                        return SA(V2D(0,0),(V2D(self.autre_position.x,yy)-self.ball_position).norm_max(1.4))
-
-
-                    else:
-                        printnn("norm")
-                        if self.autre_position.y > self.ma_position.y:
-                            py=-1
-                        else:
-                            py=1
-                        if self.In(abs(self.ma_position.y-self.autre_position.y),0,3):
-                            nom=0.8
-                        else:
-                            nom=1.5
-                        y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
-                        return SA(V2D(0,0),(y).norm_max(nom))
+                        printnn("Adv n\'aura pas la balle",self.clever.one_to_one_goal_attack)
+		        if self.autre_position.y > self.ma_position.y:
+		            py=-1
+		        else:
+		            py=1
+		        if self.In(abs(self.ma_position.y-self.autre_position.y),0,3):
+		            nom=0.8
+		        else:
+		            nom=1.5
+		        y=V2D(self.goal2.x,self.ball_position.y + 2.4*py*(abs(self.ma_position.x-self.autre_position.x))) -self.state.ball.position
+		        return SA(V2D(0,0),(y).norm_max(nom))
                                 
         
         else:
-            printnn("hh")
+            printnn("j\'ai pas la balle")
             yi=usefull().simulate(self.moi,self.state)
             return SA(yi.position-self.config.position,V2D(0,0))
 
 
-    def _rd_angle(self,shoot,dangle,dist):
-        eliss = lambda x, alpha: (math.exp(alpha*x)-1)/(math.exp(alpha)-1)
-        dangle = abs((dangle+math.pi*2) %(math.pi*2) -math.pi)
-        dangle_factor =eliss(1.-max(dangle-math.pi/2,0)/(math.pi/2.),5)
-        norm_factor = eliss(shoot.norm/settings.maxPlayerShoot,4)
-        dist_factor = eliss(dist,10)
-        angle_prc = (1-(1.-dangle_factor)*(1.-norm_factor)*(1.-0.5*dist_factor))*settings.shootRandomAngle*math.pi/2.
-        norm_prc = 1-0.3*dist_factor*dangle_factor
-        return V2D(norm=shoot.norm*norm_prc,
-                        angle=shoot.angle+2*(random.random()-0.5)*angle_prc)
-    
     def compute_strategy(self):
         if self.trou() and not self.check_shoot():
             printnn("trou")
             return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
-        if self.clever.two_to_two_goal_attack==1 and self.autre_ball():
+        if self.clever.two_to_two_goal_attack==1 and self.autre_ball() and not self.check_shoot():
             self.clever.two_to_two_goal_attack=0
             return self.to_change(TO_GOAL)
         if self.clever.one_to_one_goal_attack==1 and self.autre_ball() and not self.check_shoot():
@@ -670,6 +953,7 @@ def printn(*args, **kwargs):
     if PRINT:
         print(args)
     return
+
 def printnn(*args, **kwargs):
     if PRINTN:
         print(args)
@@ -745,28 +1029,48 @@ class clever(object):
                 self.two_to_two_goal_attack=0
                 self.one_to_one_goal_attack=0
                 self.one_to_one_goal_max=0
-                self.master=0
-                self.master_round=self.master_base=0
-		self.master_debut=0
+                self.master=0 # strat en cour
+                self.master_round=self.master_base=0 # strat du round
+		self.master_debut=-1 # strat du debut
                 self.history_me={}
                 self.tech=[2,3]
                 self.alert=0
                 self.count=0
 
-        # reset variable et change la strategie actuel en master_round
-        def begin_round(self):
-                printn("begin round",self.master_base,self.master)
+	# reset variable +historique
+        def begin_match(self,m):
+                printn("begin match",self.master_base,self.master)
+                self.master=m
+                self.history_me.clear()
                 self.onetoone_begin_round=1
-                self.master=self.master_round
                 self.one_to_one_goal_auto1=1
                 self.one_to_one_goal_max=0
                 self.alert=0
                 self.two_to_two_goal_attack=0
                 self.one_to_one_goal_attack=0
+
+        # reset variable et change la strategie actuel en  strategie de round 
+        def begin_round(self):
+                printn("begin round",self.master_base,self.master)
+		self.master=self.master_round
+                self.onetoone_begin_round=1
+                self.one_to_one_goal_auto1=1
+                self.one_to_one_goal_max=0
+                self.alert=0
+                self.two_to_two_goal_attack=0
+                self.one_to_one_goal_attack=0
+
+	#rempli historique avec id-strate , id-team gagnant, si id-team gagnant est celle de adv on appelle check
+        def end_round(self,state,bibli):
+            printn("end round",self.master_base,self.master,state._winning_team,bibli.id_team)
+            self.history_me[self.master_base]=state._winning_team
+            if state._winning_team != bibli.id_team:
+                self.check(bibli)
+            return
 
         # reset variable +historique
         def end_match(self):
-                printn("end match",self.master_base,self.master)
+                printn("end match",self.master_debut,self.master)
                 self.master=self.master_debut
                 self.history_me.clear()
                 self.onetoone_begin_round=1
@@ -775,27 +1079,8 @@ class clever(object):
                 self.one_to_one_goal_max=0
                 self.two_to_two_goal_attack=0
                 self.one_to_one_goal_attack=0
-
-        # reset variable +historique
-        def begin_match(self):
-                printn("begin match",self.master_base,self.master)
-                self.master=self.master_debut
-                self.history_me.clear()
-                self.onetoone_begin_round=1
-                self.one_to_one_goal_auto1=1
-                self.one_to_one_goal_max=0
-                self.alert=0
-                self.two_to_two_goal_attack=0
-                self.one_to_one_goal_attack=0
-
-	#change la strategie du round (master_round) en num
-        def auto_master(self,num,bibli):
-            nb_p=bibli.nb_p()
-            self.clean_master()
-            self.master_round=num
-
-        
-        # cherche quel strategie choisir (quels strategies qui n'a jms perdu)
+	
+ 	# cherche quel strategie choisir (quels strategies qui n'a jms perdu)
         def check(self,bibli):
             y = self.tech[:]
             for key, value in self.history_me.items():
@@ -813,13 +1098,11 @@ class clever(object):
                 
             
             return
-    	#rempli historique avec id-strate , id-team gagnant, si id-team gagnante est celle de adv on appelle check
-        def end_round(self,state,bibli):
-            printn("end round",self.master_base,self.master,state._winning_team,bibli.id_team)
-            self.history_me[self.master_base]=state._winning_team
-            if state._winning_team != bibli.id_team:
-                self.check(bibli)
-            return
+
+	#change la strategie du round (master_round) en num
+        def auto_master(self,num,bibli):
+            self.master_round=num
+	    return
 
 
 ############################################################
@@ -932,6 +1215,11 @@ class Bibli_Player:
         def nb_p(self):
             return len([x for x in self._configs.keys()])
         
+	def action_ball_moi(self):
+	    return self.ball_position - self.ma_position
+
+	def action_ball_adv(self):
+	    return self.ball_position - self.autre_position
         @property
         def autre(self):
             return self.near_of_me()
@@ -999,10 +1287,26 @@ class Bibli_Player:
         def check_shoot(self):
             return self.have_ball()
 
-        def has_ball_dvt2(self):
+        def dvt_adv(self):
             him=self.near_of_me()
             return self.dvt_lui(him.position)
 
+	def dvt_adv2(self):
+	    him=self.player(self._autre,0)
+	    him2=self.player(self._autre,1)
+            return self.dvt_lui(him.position) and self.dvt_lui(him2.position)
+	def dvt_adv2or(self):
+	    him=self.player(self._autre,0)
+	    him2=self.player(self._autre,1)
+            return self.dvt_lui(him.position) or self.dvt_lui(him2.position)
+
+	def dvt_adv2qui(self):
+	    him=self.player(self._autre,0)
+	    him2=self.player(self._autre,1)
+            if self.dvt_lui(him.position):
+		return 1
+            else:
+		return 0
         def autre_ball(self):
             nb=self.nb_p()/2
             for i in range (0,nb):
