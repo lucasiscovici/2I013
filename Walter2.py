@@ -33,384 +33,10 @@ TO_ATTACK=3
 TO_FORCEUR=1
 VIDE=SA(V2D(),V2D())
 
-
-class clever(object):
-        def __init__(self):
-                self.auto1_attack=1
-                self.auto1_goal=1
-                self.auto_goal_inside=1
-                self.auto1_round=0
-                self.onetoone_begin_round=1
-                self.auto1_all=1
-                self.one_to_one_goal_auto1=1
-		self.big_flow=1
-                self.two_to_two_goal_attack=0
-                self.one_to_one_goal_attack=0
-                self.one_to_one_goal_max=0
-                self.master=0
-                self.master_base=0
-                self.history_me={}
-                self.tech=[2,3]
-                self.one_to_one_goal_attack_master=0
-                self.two_to_two_goal_attack_master=0
-                self.one_to_one_attack_goal_master=0
-                self.two_to_two_attack_goal_master=0
-                self.one_to_one_goal_forceur_master=0
-                self.two_to_two_goal_forceur_master=0
-                self.one_to_one_forceur_goal_master=0
-                self.two_to_two_forceur_goal_master=0
-                self.one_to_one_forceur_attack_master=0
-                self.two_to_two_forceur_attack_master=0
-                self.one_to_one_attack_forceur_master=0
-                self.alert=0
-                self.two_to_two_attack_forceur_master=0
-                self.count=0
-        
-        def ajoute(self,nom,val):
-                self.nom=val
-        
-        def begin_round(self):
-                printn("begin round",self.master_base,self.master)
-                self.onetoone_begin_round=1
-                self.master=self.master_base
-                self.one_to_one_goal_auto1=1
-                self.one_to_one_goal_max=0
-                self.alert=0
-                self.two_to_two_goal_attack=0
-                self.one_to_one_goal_attack=0
-        
-        def end_match(self):
-                printn("end match",self.master_base,self.master)
-                self.master=self.master_base
-                self.history_me.clear()
-                self.onetoone_begin_round=1
-                self.alert=0
-                self.one_to_one_goal_auto1=1
-                self.one_to_one_goal_max=0
-                self.two_to_two_goal_attack=0
-                self.one_to_one_goal_attack=0
-        
-        def begin_match(self):
-                printn("begin match",self.master_base,self.master)
-                self.master=self.master_base
-                self.history_me.clear()
-                self.onetoone_begin_round=1
-                self.one_to_one_goal_auto1=1
-                self.one_to_one_goal_max=0
-                self.alert=0
-                self.two_to_two_goal_attack=0
-                self.one_to_one_goal_attack=0
-
-
-        def auto_master(self,num,bibli):
-            nb_p=bibli.nb_p()
-            self.clean_master()
-            self.master_base=num
-
-        
-        
-        def check(self,bibli):
-            y = self.tech[:]
-            for key, value in self.history_me.items():
-                if value != bibli.id_team:
-                    if key in y:
-                        y.remove(key)
-            if len(y) > 0:
-                self.auto_master(y[0],bibli)
-            else:
-                self.count+=1
-                if self.count==1:
-                    self.count=0
-                    self.history_me.clear()
-                    self.check(bibli)
-                
-            
-            return
-    
-        def end_round(self,state,bibli):
-            printn("end round",self.master_base,self.master,state._winning_team,bibli.id_team)
-            self.history_me[self.master_base]=state._winning_team
-            if state._winning_team != bibli.id_team:
-                self.check(bibli)
-            return
-
-        def clean_master(self):
-            self.one_to_one_goal_attack_master=0
-            self.two_to_two_goal_attack_master=0
-            self.one_to_one_attack_goal_master=0
-            self.two_to_two_attack_goal_master=0
-            self.one_to_one_goal_forceur_master=0
-            self.two_to_two_goal_forceur_master=0
-            self.one_to_one_forceur_goal_master=0
-            self.two_to_two_forceur_goal_master=0
-            self.one_to_one_forceur_attack_master=0
-            self.two_to_two_forceur_attack_master=0
-            self.one_to_one_attack_forceur_master=0
-            self.two_to_two_attack_forceur_master=0
-
-class StatePlayer:
-    def __init__(self,state,id_team,id_player):
-        self.state=state
-        self.id_team=id_team
-        self.id_player=id_player
-        if id_team==1:
-            self._autre=2
-        elif id_team==2:
-            self._autre=1
-        self.moi=self.config=state.player(id_team,id_player)
-        self.ma_position=self.moi.position
-        self.ma_vitesse=self.moi.vitesse
-
-    @property
-    def ma_position_m(self):
-        return usefull().mirror(self.ma_position,self.id_team)
-    
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-
-class StateTerrain:
-    def __init__(self,state,id_team,id_player):
-        self.state=state
-        self._state=state
-        self.id_team=id_team
-        self.id_player=id_player
-        if id_team==1:
-            self.mes_goal=self.goal=GOAL1
-            self.autre_goal=self.goal2=GOAL2
-            self.mon_sens=self.sens=T1_SENS
-        elif id_team==2:
-            self.mes_goal=self.goal=GOAL2
-            self.autre_goal=self.goal2=GOAL1
-            self.mon_sens=self.sens=T2_SENS
-    
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-
-class StateBall:
-    def __init__(self,state,id_team,id_player):
-        self.state=state
-        self.id_team=id_team
-        self.id_player=id_player
-        self.ball=self.state.ball
-        self.ball_position=self.ball.position
-        self.ball_vitesse=self.ball.vitesse
-
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-
-class AllState:
-    def __init__(self,state,id_team,id_player):
-        self.state=StatePlayer(StateBall(StateTerrain(state,id_team,id_player),id_team,id_player),id_team,id_player)
-        self.id_team=id_team
-        self.id_player=id_player
-    
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-class usefull:
-    def __init__(self):
-        self.name="d"
-    
-    def get_attr(self,a,b,c):
-        try:
-            return getattr(a, c)
-        except:
-            return getattr(b,c)
-    def simulate(self,config,state):
-        i=0
-        a=state.copy()
-        a=a.ball
-#        printnn("simulate: la balle",a,"si balle_dvt moi on projette",self.balle_dvt(config,state.id_team,a),"ma position",state.ma_position)
-        while self.balle_dvt(config,state.id_team,a) and i<=10:
-#            printnn("1 a",a)
-#            b=Ball(V2D(a.position.x,a.position.y),V2D(a.vitesse.x,a.vitesse.y))
-            aa=self.next_position_ball(a)
-            bb=self.balle_dvt(config,state.id_team,aa)
-#            printnn("2 a b",a,aa)
-            if bb:
-#                printnn("if 3 a b",a,aa)
-                a=aa
-            else:
-#                printnn("valeur a renvoyer else a b",a,aa)
-                return a
-            i+=1
-        i=0
-#        printnn("valeur a renvoyer",a)
-        return a
-    def next_position_player(self,dis,config):
-        config_state_vitesse = config._state.vitesse * (1 - settings.playerBrackConstant) #frottemnt
-        config_state_vitesse = (config_state_vitesse+dis.norm_max(settings.maxPlayerAcceleration)).norm_max(settings.maxPlayerSpeed)
-        config_state_position = config._state.position+ config_state_vitesse.norm_max(settings.maxPlayerSpeed)
-        return config_state_position
-    
-    def balle_dvt(self,config,id_team,ball):
-        if id_team==1:
-            return ball.position.x > config.position.x
-        else:
-            return ball.position.x<config.position.x
-            
-    def has_ball(self,ball,position,m=0):
-        try:
-            return ball.position.distance(position) <= RAYON_BALL_PLAYER + m
-        except:
-            return ball.ball.position.distance(position) <= RAYON_BALL_PLAYER + m
-
-    def has_ball_merge(self,ball,position,m):
-        return self.has_ball(ball,position,m)
-    
-    
-    def _near_of_me(self,config1,id_team,state):
-        po=0
-        g=ma_position.distance(state.player(id_team,po).position)
-        pp=1
-        i=config1.position.distance(state.player(id_team,pp).position)
-        if g<i:
-            j=state.player(id_team,po)
-        else:
-            j=state.player(id_team,pp)
-        return j
-
-    def next_position_ball(self,ball):
-        try:
-            ballo=Ball(V2D(ball.position.x,ball.position.y),V2D(ball.vitesse.x,ball.vitesse.y))
-            ballo.next(V2D())
-        except:
-            ballo=Ball(V2D(ball.ball.position.x,ball.ball.position.y),V2D(ball.ball.vitesse.x,ball.ball.vitesse.y))
-            ballo.next(V2D())
-        return ballo
-
-    def projector_ball_x(self,ball,position_x):
-        if ball.vitesse.x != 0:
-            lamda=(position_x-ball.position.x)/ball.vitesse.x
-            return ball.vitesse.y*lamda + ball.position.y
-        else:
-            return ball.position.y
-
-    def mirror(self,position,id_team):
-        if id_team==2:
-            return V2D(GAME_WIDTH-position.x,GAME_HEIGHT-position.y)
-        return position
-
-    def Min(self,n,min):
-        return n<=min
-
-    def Max(self,n,max):
-        return n>=max
-
-    def In(self,b,min,max):
-        return self.Min(b,max) and self.Max(b,min)
-
-    def In_m(self,position,but,marge):
-        return self.In(position, but-marge,but+marge)
-
-class Bibli_Player:
-        def __init__(self,state,bibli):
-            self.state=state
-            self.bibli=bibli
-            self.autre_player=self.autre
-        
-        def nb_p(self):
-            return len([x for x in self._configs.keys()])
-        
-        @property
-        def autre(self):
-            return self.near_of_me()
-        @property
-        def autre_position(self):
-            return self.autre.position
-        @property
-        def autre_vitesse(self):
-            return self.autre.vitesse
-        
-        def have_ball(self):
-            return self.has_ball(self.ball,self.ma_position)
-        
-        def dvt_lui(self,him):
-            me=self.ma_position
-            if self.id_team==1:
-                return me.x >him.x
-            else:
-                return me.x <him.x
-        def attack(self):
-        #        printnn("attack-simulate")
-            printnn("ball",self.ball,"norm",self.ball_vitesse.norm)
-            
-            yi=usefull().simulate(self.moi,self.state)
-            yy=self.next_position_ball(yi)
-            k=PLAYER_RADIUS + PLAYER_RADIUS + settings.maxPlayerSpeed
-            printnn("ydzi",yi)
-            if self.ball_vitesse.norm < settings.maxPlayerSpeed and (self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k):
-                yi=self.ball
-            #        if regles5:
-            #            printnn("r5")
-            #            return SA((yi.position-self.config.position).norm_max(1),V2D())
-            #
-            #        if regles4:
-            #            printnn("r4")
-            #
-            #            return SA((yi.position-self.config.position).norm_max(0.7),V2D())
-            #
-            #        if regles3:
-            #            printnn("r3")
-            #
-            #            return SA((yi.position-self.config.position).norm_max(0.4),V2D())
-            #
-            #        if regles2:
-            #            printnn("r2")
-            #
-            #            return SA((yi.position-self.config.position).norm_max(0.3),V2D())
-            
-            return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
-
-        def has_ball_next(self):
-            f=self.next_position_ball_state()
-            return self.has_ball(f,self.ma_position)
-        def trou(self):
-            yp=self.next_position_ball_state()
-            yo=self.next_position_ball(yp)
-            yy=self.next_position_ball(yo)
-
-#	    printnn("yp",yp,"yo",yo,"hs",self.has_ball(yo,self.ma_position),"hbb",self.has_ball(yp,self.ma_position))
-            return self.has_ball(yo,self.ma_position) or self.has_ball(yp,self.ma_position) or self.has_ball(yy,self.ma_position)
-        def has_ball_dvt(self):
-            him=self.near_of_me()
-            return self.have_ball() and not self.dvt_lui(him.position)
-
-        def check_shoot(self):
-            return self.have_ball()
-
-        def has_ball_dvt2(self):
-            him=self.near_of_me()
-            return self.dvt_lui(him.position)
-
-        def autre_ball(self):
-            nb=self.nb_p()/2
-            for i in range (0,nb):
-                if self.has_ball(self.ball,self.state.player(self._autre,i).position):
-                    return 1
-            return 0
-
-        def near_of_me(self):
-            config1,id_team,state = self.moi,self._autre,self.bibli
-            if self.nb_p()==2:
-                return state.player(id_team,0)
-            po=0
-            g=self.ma_position.distance(state.player(id_team,po).position)
-            pp=1
-            i=self.ma_position.distance(state.player(id_team,pp).position)
-            if g<i:
-                j=state.player(id_team,po)
-            else:
-                j=state.player(id_team,pp)
-            return j
-
-        def player_in_but(self,but,marge_x,marge_y):
-            but=GOAL1
-            return self.In_m(self.ma_position_m.x,but.x,marge_x) and self.In_m(self.ma_position.y,but.y,marge_y)
-    
-        def __getattr__(self,name):
-            return self.bibli.get_attr(self.bibli,self.state,name)
-
-
+###############################################
+#INIT STRATEGIES################################
+###############################################
+#STRATEGIE PRINCIPALE AVEC CHANGEMENT GLOBALE, DISPACHE AU STRATEGIE CORRESPONDANT AU NOMBRE DE JOUEUR
 class all(AS):
         def __init__(self,num=0,zz=0,cleverr=0):
             if zz==0:
@@ -461,6 +87,7 @@ class all(AS):
         def __getattr__(self,name):
             return getattr(self.state,name)
 
+#STRATEGIE PRINCIPALE SANS CHANGEMENT GLOBALE, DISPACHE AU STRATEGIE CORRESPONDANT AU NOMBRE DE JOUEUR
 class all2(AS):
     def __init__(self,num=0,zz=0,cleverr=0):
 	    if zz==0:
@@ -497,6 +124,7 @@ class all2(AS):
     def __getattr__(self,name):
         return getattr(self.state,name)
 
+#SELECTOR STRATEGIE DE 1-1 (ATTACK,GOAL,FORCEUR)
 class illumination_one_to_one(AS):
     def __init__(self,id=0):
         AS.__init__(self,"illumination")
@@ -516,6 +144,7 @@ class illumination_one_to_one(AS):
     def __getattr__(self,name):
         return getattr(self.state,name)
 
+#SELECTOR STRATEGIE DE 2-2 (ATTACK,GOAL,FORCEUR)
 class illumination_two_to_two(AS):
     def __init__(self,id=0):
         AS.__init__(self,"illumijnation")
@@ -532,6 +161,122 @@ class illumination_two_to_two(AS):
         elif self.id==3:
             return attack_one_to_one(state).compute_strategy()
 
+
+
+##########################################
+#INIT DECORATEUR + BIBLI##################
+##########################################
+#DECORATEUR PRINCIPALE
+class AllState:
+    def __init__(self,state,id_team,id_player):
+        self.state=StatePlayer(StateBall(StateTerrain(state,id_team,id_player),id_team,id_player),id_team,id_player)
+        self.id_team=id_team
+        self.id_player=id_player
+    
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+#BIBLIOTHEQUE PRINCIPALE
+class Bibli:
+    def __init__(self,state,clever=0):
+        self.state=state
+        self.clever=clever
+        self.bibli=Bibli_Player(state,Bibli_Ball(state,usefull()))
+    def to_change(self,num):
+	if self.clever.big_flow==1:
+	        return all(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
+        else:
+		return all2(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
+    def __getattr__(self,name):
+        return self.bibli.get_attr(self.bibli,self.state,name)
+
+
+##########################################################
+#STRATEGIE GOAL###########################################
+##########################################################
+class goal_one_to_one(AS):
+    def __init__(self,state):
+        AS.__init__(self,"goal_one_to_one")
+        self.state=state
+    def compute_strategy(self):
+        printnn("oco goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
+        if self.trou() and not self.check_shoot():
+            printnn("trou")
+            return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
+        if self.check_shoot() or (self.dvt_lui(self.autre_position) and self.check_no_goal()):
+            printnn("shoot")
+            self.clever.one_to_one_goal_auto1=1
+            self.clever.one_to_one_goal_attack=1
+            return self.to_change(TO_ATTACK)
+        if self.check_no_goal():
+            printnn("no goal")
+            self.clever.one_to_one_goal_auto1=0
+        if self.check_goal_dvt():
+            printnn("dvt")
+            self.clever.one_to_one_goal_auto1=0
+            return self.dvt()
+        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
+            printnn("goal")
+            return self.revien_goal()
+        if self.check_attack():
+            printnn("attack")
+            return self.attack()
+        if self.check_stop_alert():
+            printnn("stop alert")
+            self.clever.alert=0
+            return self.stop_alert()
+        if self.check_alert():
+            printnn("alert")
+            self.clever.alert=1
+            return self.alert()
+        printnn("ri")
+        return SA()
+
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+
+class goal_two_to_two(AS):
+    def __init__(self,state):
+        AS.__init__(self,"goal_one_to_one")
+        self.state=state
+    
+                                     
+    def compute_strategy(self):
+        printnn("oco 2goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
+        if self.clever.alert==1:
+            return self.alert()
+        if self.check_no_goal():
+            printnn("no goal")
+            self.clever.one_to_one_goal_auto1=0
+        if self.check_goal_dvt():
+            printnn("dvt")
+            self.clever.one_to_one_goal_auto1=0
+            return self.dvt()
+        if ((not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb()) and not self.clever.alert:
+            printnn("goal")
+            return self.revien_goal()
+        if self.check_shoot():
+            printnn("shoot")
+            self.clever.one_to_one_goal_auto1=1
+            self.clever.one_to_one_goal_attack=1
+            return self.to_change(TO_ATTACK)
+        if self.check_attack():
+            printnn("attack")
+            return self.attack()
+        if self.check_stop_alert():
+            printnn("stop alert")
+            self.clever.alert=0
+            return self.stop_alert()
+        if self.check_alert():
+            printnn("alert")
+            self.clever.alert=1
+            return self.alert()
+        printnn("ri")
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+
+###################################################
+#BIBLI GOAL#######################################
+###################################################
 class Bibli_Goal:
     def __init__(self,state):
         self.bibli=self.state=state
@@ -678,115 +423,10 @@ class Bibli_Goal:
     def __getattr__(self,name):
         return self.bibli.get_attr(self.bibli,self.state,name)
 
-class Bibli_Ball:
-    def __init__(self,state,d):
-        self.state=state
-        self.d=d
-    
-    
-    def next_position_ball_state(self):
-        return self.next_position_ball(self.state)
-                                     
-    def ball_in_zone(self,zone):
-        return abs(self.ball_position.x - self.mes_goal.x) <= zone
 
-    def __getattr__(self,name):
-        return  self.d.get_attr(self.state,self.d,name)
-
-class Bibli:
-    def __init__(self,state,clever=0):
-        self.state=state
-        self.clever=clever
-        self.bibli=Bibli_Player(state,Bibli_Ball(state,usefull()))
-    def to_change(self,num):
-	if self.clever.big_flow==1:
-	        return all(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
-        else:
-		return all2(num,1,self.clever).compute_strategy(self.state._state,self.id_team,self.id_player)
-    def __getattr__(self,name):
-        return self.bibli.get_attr(self.bibli,self.state,name)
-
-class goal_one_to_one(AS):
-    def __init__(self,state):
-        AS.__init__(self,"goal_one_to_one")
-        self.state=state
-    def compute_strategy(self):
-        printnn("oco goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
-        if self.trou() and not self.check_shoot():
-            printnn("trou")
-            return SA(V2D(self.ma_vitesse.x*-1,self.ma_vitesse.y*-1),V2D())
-        if self.check_shoot() or (self.dvt_lui(self.autre_position) and self.check_no_goal()):
-            printnn("shoot")
-            self.clever.one_to_one_goal_auto1=1
-            self.clever.one_to_one_goal_attack=1
-            return self.to_change(TO_ATTACK)
-        if self.check_no_goal():
-            printnn("no goal")
-            self.clever.one_to_one_goal_auto1=0
-        if self.check_goal_dvt():
-            printnn("dvt")
-            self.clever.one_to_one_goal_auto1=0
-            return self.dvt()
-        if (not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb():
-            printnn("goal")
-            return self.revien_goal()
-        if self.check_attack():
-            printnn("attack")
-            return self.attack()
-        if self.check_stop_alert():
-            printnn("stop alert")
-            self.clever.alert=0
-            return self.stop_alert()
-        if self.check_alert():
-            printnn("alert")
-            self.clever.alert=1
-            return self.alert()
-        printnn("ri")
-        return SA()
-
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-
-class goal_two_to_two(AS):
-    def __init__(self,state):
-        AS.__init__(self,"goal_one_to_one")
-        self.state=state
-    
-                                     
-    def compute_strategy(self):
-        printnn("oco 2goal",self.id_team,self.id_player,"f",self.clever.one_to_one_goal_auto1)
-        if self.clever.alert==1:
-            return self.alert()
-        if self.check_no_goal():
-            printnn("no goal")
-            self.clever.one_to_one_goal_auto1=0
-        if self.check_goal_dvt():
-            printnn("dvt")
-            self.clever.one_to_one_goal_auto1=0
-            return self.dvt()
-        if ((not self.check_goal() and self.clever.one_to_one_goal_auto1) or self.bb()) and not self.clever.alert:
-            printnn("goal")
-            return self.revien_goal()
-        if self.check_shoot():
-            printnn("shoot")
-            self.clever.one_to_one_goal_auto1=1
-            self.clever.one_to_one_goal_attack=1
-            return self.to_change(TO_ATTACK)
-        if self.check_attack():
-            printnn("attack")
-            return self.attack()
-        if self.check_stop_alert():
-            printnn("stop alert")
-            self.clever.alert=0
-            return self.stop_alert()
-        if self.check_alert():
-            printnn("alert")
-            self.clever.alert=1
-            return self.alert()
-        printnn("ri")
-    def __getattr__(self,name):
-        return getattr(self.state,name)
-
+############################################
+#STRATEGIE ATTACK############################
+#############################################
 class attack_two_to_two(AS):
     def __init__(self,state):
         AS.__init__(self,"goal_one_to_one")
@@ -993,14 +633,9 @@ class attack_one_to_one(AS):
        return getattr(self.state,name)
 
                                      
-        
-class ia(AS):
-    def __init__(self):
-        AS.__init__(self,"ia") 
-        
-    def compute_strategy(self,state,id_team,id_player):
-        return
-
+###############################################
+#FORCEUR######################################
+#############################################
 class forceur(AS):
     def __init__(self,state):
         AS.__init__(self,"forceur_one_to_one")
@@ -1030,6 +665,7 @@ class forceur(AS):
     def __getattr__(self,name):
         return getattr(self.state,name)
 
+#CONTROLE DU PRINT
 def printn(*args, **kwargs):
     if PRINT:
         print(args)
@@ -1038,3 +674,385 @@ def printnn(*args, **kwargs):
     if PRINTN:
         print(args)
     return
+
+#######################################################
+#DECORATEUR############################################
+#######################################################
+class StatePlayer:
+    def __init__(self,state,id_team,id_player):
+        self.state=state
+        self.id_team=id_team
+        self.id_player=id_player
+        if id_team==1:
+            self._autre=2
+        elif id_team==2:
+            self._autre=1
+        self.moi=self.config=state.player(id_team,id_player)
+        self.ma_position=self.moi.position
+        self.ma_vitesse=self.moi.vitesse
+
+    @property
+    def ma_position_m(self):
+        return usefull().mirror(self.ma_position,self.id_team)
+    
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+
+class StateTerrain:
+    def __init__(self,state,id_team,id_player):
+        self.state=state
+        self._state=state
+        self.id_team=id_team
+        self.id_player=id_player
+        if id_team==1:
+            self.mes_goal=self.goal=GOAL1
+            self.autre_goal=self.goal2=GOAL2
+            self.mon_sens=self.sens=T1_SENS
+        elif id_team==2:
+            self.mes_goal=self.goal=GOAL2
+            self.autre_goal=self.goal2=GOAL1
+            self.mon_sens=self.sens=T2_SENS
+    
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+
+class StateBall:
+    def __init__(self,state,id_team,id_player):
+        self.state=state
+        self.id_team=id_team
+        self.id_player=id_player
+        self.ball=self.state.ball
+        self.ball_position=self.ball.position
+        self.ball_vitesse=self.ball.vitesse
+
+    def __getattr__(self,name):
+        return getattr(self.state,name)
+
+################################################
+#Proxy##########################################
+################################################
+# Historique + autorisation de changement de strategie du round (global), et changement pendant une strategie (temporaire) + fct changeant les strategies + variable informant d'un changement
+class clever(object):
+        def __init__(self):
+                self.auto1_attack=1
+                self.auto1_goal=1
+                self.auto_goal_inside=1
+                self.auto1_round=0
+                self.onetoone_begin_round=1
+                self.auto1_all=1
+                self.one_to_one_goal_auto1=1
+		self.big_flow=1
+                self.two_to_two_goal_attack=0
+                self.one_to_one_goal_attack=0
+                self.one_to_one_goal_max=0
+                self.master=0
+                self.master_round=self.master_base=0
+		self.master_debut=0
+                self.history_me={}
+                self.tech=[2,3]
+                self.alert=0
+                self.count=0
+
+        # reset variable et change la strategie actuel en master_round
+        def begin_round(self):
+                printn("begin round",self.master_base,self.master)
+                self.onetoone_begin_round=1
+                self.master=self.master_round
+                self.one_to_one_goal_auto1=1
+                self.one_to_one_goal_max=0
+                self.alert=0
+                self.two_to_two_goal_attack=0
+                self.one_to_one_goal_attack=0
+
+        # reset variable +historique
+        def end_match(self):
+                printn("end match",self.master_base,self.master)
+                self.master=self.master_debut
+                self.history_me.clear()
+                self.onetoone_begin_round=1
+                self.alert=0
+                self.one_to_one_goal_auto1=1
+                self.one_to_one_goal_max=0
+                self.two_to_two_goal_attack=0
+                self.one_to_one_goal_attack=0
+
+        # reset variable +historique
+        def begin_match(self):
+                printn("begin match",self.master_base,self.master)
+                self.master=self.master_debut
+                self.history_me.clear()
+                self.onetoone_begin_round=1
+                self.one_to_one_goal_auto1=1
+                self.one_to_one_goal_max=0
+                self.alert=0
+                self.two_to_two_goal_attack=0
+                self.one_to_one_goal_attack=0
+
+	#change la strategie du round (master_round) en num
+        def auto_master(self,num,bibli):
+            nb_p=bibli.nb_p()
+            self.clean_master()
+            self.master_round=num
+
+        
+        # cherche quel strategie choisir (quels strategies qui n'a jms perdu)
+        def check(self,bibli):
+            y = self.tech[:]
+            for key, value in self.history_me.items():
+                if value != bibli.id_team:
+                    if key in y:
+                        y.remove(key)
+            if len(y) > 0:
+                self.auto_master(y[0],bibli)
+            else:
+                self.count+=1
+                if self.count==1:
+                    self.count=0
+                    self.history_me.clear()
+                    self.check(bibli)
+                
+            
+            return
+    	#rempli historique avec id-strate , id-team gagnant, si id-team gagnante est celle de adv on appelle check
+        def end_round(self,state,bibli):
+            printn("end round",self.master_base,self.master,state._winning_team,bibli.id_team)
+            self.history_me[self.master_base]=state._winning_team
+            if state._winning_team != bibli.id_team:
+                self.check(bibli)
+            return
+
+
+############################################################
+#BIBLIOTHEQUE###############################################
+############################################################
+#fct utile bas niveau
+class usefull:
+    def __init__(self):
+        self.name="d"
+    
+    def get_attr(self,a,b,c):
+        try:
+            return getattr(a, c)
+        except:
+            return getattr(b,c)
+    def simulate(self,config,state):
+        i=0
+        a=state.copy()
+        a=a.ball
+#        printnn("simulate: la balle",a,"si balle_dvt moi on projette",self.balle_dvt(config,state.id_team,a),"ma position",state.ma_position)
+        while self.balle_dvt(config,state.id_team,a) and i<=10:
+#            printnn("1 a",a)
+#            b=Ball(V2D(a.position.x,a.position.y),V2D(a.vitesse.x,a.vitesse.y))
+            aa=self.next_position_ball(a)
+            bb=self.balle_dvt(config,state.id_team,aa)
+#            printnn("2 a b",a,aa)
+            if bb:
+#                printnn("if 3 a b",a,aa)
+                a=aa
+            else:
+#                printnn("valeur a renvoyer else a b",a,aa)
+                return a
+            i+=1
+        i=0
+#        printnn("valeur a renvoyer",a)
+        return a
+    def next_position_player(self,dis,config):
+        config_state_vitesse = config._state.vitesse * (1 - settings.playerBrackConstant) #frottemnt
+        config_state_vitesse = (config_state_vitesse+dis.norm_max(settings.maxPlayerAcceleration)).norm_max(settings.maxPlayerSpeed)
+        config_state_position = config._state.position+ config_state_vitesse.norm_max(settings.maxPlayerSpeed)
+        return config_state_position
+    
+    def balle_dvt(self,config,id_team,ball):
+        if id_team==1:
+            return ball.position.x > config.position.x
+        else:
+            return ball.position.x<config.position.x
+            
+    def has_ball(self,ball,position,m=0):
+        try:
+            return ball.position.distance(position) <= RAYON_BALL_PLAYER + m
+        except:
+            return ball.ball.position.distance(position) <= RAYON_BALL_PLAYER + m
+
+    def has_ball_merge(self,ball,position,m):
+        return self.has_ball(ball,position,m)
+    
+    
+    def _near_of_me(self,config1,id_team,state):
+        po=0
+        g=ma_position.distance(state.player(id_team,po).position)
+        pp=1
+        i=config1.position.distance(state.player(id_team,pp).position)
+        if g<i:
+            j=state.player(id_team,po)
+        else:
+            j=state.player(id_team,pp)
+        return j
+
+    def next_position_ball(self,ball):
+        try:
+            ballo=Ball(V2D(ball.position.x,ball.position.y),V2D(ball.vitesse.x,ball.vitesse.y))
+            ballo.next(V2D())
+        except:
+            ballo=Ball(V2D(ball.ball.position.x,ball.ball.position.y),V2D(ball.ball.vitesse.x,ball.ball.vitesse.y))
+            ballo.next(V2D())
+        return ballo
+
+    def projector_ball_x(self,ball,position_x):
+        if ball.vitesse.x != 0:
+            lamda=(position_x-ball.position.x)/ball.vitesse.x
+            return ball.vitesse.y*lamda + ball.position.y
+        else:
+            return ball.position.y
+
+    def mirror(self,position,id_team):
+        if id_team==2:
+            return V2D(GAME_WIDTH-position.x,GAME_HEIGHT-position.y)
+        return position
+
+    def Min(self,n,min):
+        return n<=min
+
+    def Max(self,n,max):
+        return n>=max
+
+    def In(self,b,min,max):
+        return self.Min(b,max) and self.Max(b,min)
+
+    def In_m(self,position,but,marge):
+        return self.In(position, but-marge,but+marge)
+
+#Fct haut niveau ayant besoin de d'info sur joueur, ball, terrain
+class Bibli_Player:
+        def __init__(self,state,bibli):
+            self.state=state
+            self.bibli=bibli
+            self.autre_player=self.autre
+        
+        def nb_p(self):
+            return len([x for x in self._configs.keys()])
+        
+        @property
+        def autre(self):
+            return self.near_of_me()
+        @property
+        def autre_position(self):
+            return self.autre.position
+        @property
+        def autre_vitesse(self):
+            return self.autre.vitesse
+        
+        def have_ball(self):
+            return self.has_ball(self.ball,self.ma_position)
+        
+        def dvt_lui(self,him):
+            me=self.ma_position
+            if self.id_team==1:
+                return me.x >him.x
+            else:
+                return me.x <him.x
+        def attack(self):
+        #        printnn("attack-simulate")
+            printnn("ball",self.ball,"norm",self.ball_vitesse.norm)
+            
+            yi=usefull().simulate(self.moi,self.state)
+            yy=self.next_position_ball(yi)
+            k=PLAYER_RADIUS + PLAYER_RADIUS + settings.maxPlayerSpeed
+            printnn("ydzi",yi)
+            if self.ball_vitesse.norm < settings.maxPlayerSpeed and (self.ma_position.distance(self.ball_position)<k or self.ma_position.distance(yi.position)<k or self.ma_position.distance(yy.position)<k):
+                yi=self.ball
+            #        if regles5:
+            #            printnn("r5")
+            #            return SA((yi.position-self.config.position).norm_max(1),V2D())
+            #
+            #        if regles4:
+            #            printnn("r4")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.7),V2D())
+            #
+            #        if regles3:
+            #            printnn("r3")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.4),V2D())
+            #
+            #        if regles2:
+            #            printnn("r2")
+            #
+            #            return SA((yi.position-self.config.position).norm_max(0.3),V2D())
+            
+            return SA((yi.position-self.config.position).norm_max(yy.vitesse.norm),V2D())
+
+        def has_ball_next(self):
+            f=self.next_position_ball_state()
+            return self.has_ball(f,self.ma_position)
+        def trou(self):
+            yp=self.next_position_ball_state()
+            yo=self.next_position_ball(yp)
+            yy=self.next_position_ball(yo)
+
+#	    printnn("yp",yp,"yo",yo,"hs",self.has_ball(yo,self.ma_position),"hbb",self.has_ball(yp,self.ma_position))
+            return self.has_ball(yo,self.ma_position) or self.has_ball(yp,self.ma_position) or self.has_ball(yy,self.ma_position)
+        def has_ball_dvt(self):
+            him=self.near_of_me()
+            return self.have_ball() and not self.dvt_lui(him.position)
+
+        def check_shoot(self):
+            return self.have_ball()
+
+        def has_ball_dvt2(self):
+            him=self.near_of_me()
+            return self.dvt_lui(him.position)
+
+        def autre_ball(self):
+            nb=self.nb_p()/2
+            for i in range (0,nb):
+                if self.has_ball(self.ball,self.state.player(self._autre,i).position):
+                    return 1
+            return 0
+
+        def near_of_me(self):
+            config1,id_team,state = self.moi,self._autre,self.bibli
+            if self.nb_p()==2:
+                return state.player(id_team,0)
+            po=0
+            g=self.ma_position.distance(state.player(id_team,po).position)
+            pp=1
+            i=self.ma_position.distance(state.player(id_team,pp).position)
+            if g<i:
+                j=state.player(id_team,po)
+            else:
+                j=state.player(id_team,pp)
+            return j
+
+        def player_in_but(self,but,marge_x,marge_y):
+            but=GOAL1
+            return self.In_m(self.ma_position_m.x,but.x,marge_x) and self.In_m(self.ma_position.y,but.y,marge_y)
+    
+        def __getattr__(self,name):
+            return self.bibli.get_attr(self.bibli,self.state,name)
+
+#Fct haut niveau necessitant la balle et le terrain
+class Bibli_Ball:
+    def __init__(self,state,d):
+        self.state=state
+        self.d=d
+    
+    
+    def next_position_ball_state(self):
+        return self.next_position_ball(self.state)
+                                     
+    def ball_in_zone(self,zone):
+        return abs(self.ball_position.x - self.mes_goal.x) <= zone
+
+    def __getattr__(self,name):
+        return  self.d.get_attr(self.state,self.d,name)
+
+#nulm
+class ia(AS):
+    def __init__(self):
+        AS.__init__(self,"ia") 
+        
+    def compute_strategy(self,state,id_team,id_player):
+        return
+
+
