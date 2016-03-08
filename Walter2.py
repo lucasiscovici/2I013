@@ -9,7 +9,7 @@ from soccersimulator.mdpsoccer import Ball
 from random import uniform,randint
 settings=soccersimulator.settings
 
-#but adv x
+#but adv
 T1_BUT=GAME_WIDTH
 T2_BUT=0
 #sens pour aller au but adverse
@@ -57,7 +57,7 @@ history_me={}
 dico_clever={"auto1_attack":1,"auto1_goal":1,"auto_goal_inside":1,"auto1_round":0,"onetoone_begin_round":
 1,"auto1_all":1,"one_to_one_goal_auto1":1,"two_to_two_goal_attack":0,"one_to_one_goal_attack":
 0,"one_to_one_goal_max":0,"master":0,"master_round":0,"master_base":0,"master_debut":-1,"history_me":
-history_me,"alert":0,"count":0,"tech":tech,"all":1,"listener":0}
+history_me,"alert":0,"count":0,"tech":tech,"listener":0}
 
 #Variable à reset
 dico_clever_up={"onetoone_begin_round":1,"one_to_one_goal_auto1":1,"two_to_two_goal_attack":0,"one_to_one_goal_attack":
@@ -75,8 +75,6 @@ class all(AS):
                 printnn("all\ Clever crée")
                 #strat en cours
             	self.clever.master=num
-                #class all=1 class all2=2
-                self.clever.all=1
                 #strat round
             	self.clever.master_round=num
                 #strat d'origine
@@ -119,10 +117,8 @@ class all(AS):
         #Change la strategie temporaire en @num
         def to_change(self,num):
             self.clever.master=num
-            if self.clever.all==1:
-                return self.compute_strategy_change(self.state,self.bibli)
-            else:
-                return self.compute_strategy_change(self.state,self.bibli)
+            return self.compute_strategy_change(self.state,self.bibli)
+
 
         def begin_round(self, team1, team2, state):
             printn("joueur",team1)
@@ -213,8 +209,6 @@ class illumination_one_to_one(AS):
     def compute_strategy(self,state):
         printnn("illumination_one_to_one-compute_strategy\\")
         self.state=state
-        if self.state.clever.one_to_one_goal_attack:
-            return attack_one_to_one(state).compute_strategy()
         if self.id==1:
             return forceur(state).compute_strategy()
         elif self.id==2:
@@ -232,8 +226,6 @@ class illumination_two_to_two(AS):
     def compute_strategy(self,state):
         printnn("illumination_two_to_two-compute_strategy\\")
         self.state=state
-        if self.state.clever.two_to_two_goal_attack:
-            return attack_one_to_one(state).compute_strategy()
         if self.id==1:
             return forceur(state).compute_strategy()
         elif self.id==2:
@@ -1118,7 +1110,7 @@ class clever(object):
 
         # reset variable +historique
         def end_match(self):
-                self.master=self.round=self.master_debut
+                self.master=self.master_round=self.master_debut
                 printn("end match master_debut",self.master_debut,"master_round",self.master_round,"master",self.master)
                 self.history_me.clear()
                 for k, c in dico_clever_up.items():
