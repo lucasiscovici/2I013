@@ -1,7 +1,10 @@
 from soccersimulator import settings, SoccerAction,Vector2D,DecisionTreeClassifier, KeyboardStrategy, BaseStrategy
 from soccersimulator import export_graphviz
 from soccersimulator import *
+import Walter2 as W2
 from WalterIA import *
+import os
+fn=os.path.join(os.path.dirname(os.path.realpath(__file__)),"tree.pkl")
 import cPickle
 import sys
 def gen_features(state,id_team,id_player):
@@ -55,7 +58,11 @@ class DTreeStrategy(BaseStrategy):
         return self.dic[label].compute_strategy(state,id_team,id_player)
 
 
-tree = cPickle.load(file("./pro/tree.pkl"))
+tree = cPickle.load(file(fn))
 dic = {"GOAL":all2(2),"ATTACK":all2(3),"FORCEUR":all2(1),"GOGOLE":gogole()}
 treeStrat = DTreeStrategy(tree,dic,gen_features)
-team1 = SoccerTeam("keyb",[Player("KBs", treeStrat)])
+teamIA = SoccerTeam("keyb",[Player("KBs", treeStrat)])
+team1= STe("psg",[Player("Thiago Silva",W2.all(2))])
+team2= STe("psg",[Player("Thiago Silva",W2.all(2)),Player("Ibra",W2.all(3))])
+team4=STe("mars",[Player("Thiago Silva",W2.all(2)),Player("Ibra",W2.all(1)),Player("Cavani",W2.all(3)),Player("Thiago Silva",W2.all(2))])
+
