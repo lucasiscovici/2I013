@@ -39,8 +39,8 @@ MODULO_GOAL=2
 GOAL_ATTACK2=20
 GAMMA=1.5
 #Autorisation de print
-PRINT=1
-PRINTN=1
+PRINT=0
+PRINTN=0
 #num des strategies pour les changements temporaires (voir to_change)
 TO_GOAL=2
 TO_ATTACK=3
@@ -52,7 +52,7 @@ TIR_NORM=3.5
 #aucune action
 VIDE=SA(V2D(),V2D())
 #strategies
-tech=[4,3]
+tech=[4,3,2]
 #historique (id_strat):id_team_gagnant_round
 history_me={}
 
